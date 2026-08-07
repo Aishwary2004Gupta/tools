@@ -172,9 +172,12 @@ Full run, button to saved mp4, 1344x768 at 124 frames, one seed, 4x RTX 3090 at
 
 | mode | steps | sampling | full run |
 |---|---|---|---|
-| turbo, `low_vram` on | 4 | 2:42 | **3:45** |
+| **turbo, `low_vram` on (default)** | 4 | 2:42 | **3:45** |
 | turbo, `low_vram` off | 4 | 3:37 | 7:07 |
 | base | 20 | 10:14 | 11:08 |
+
+The default is the merged path, which is both the fastest and the one that keeps
+skin clean on close-ups. See the Turbo LoRA notes below for why.
 
 On a draft-size 608x352 at 39 frames: turbo 25 s, base 121 s on the same graph.
 A 15-second clip (362 frames) at 1344x768 took 46 minutes on the base path, peak
@@ -187,13 +190,43 @@ right, then render full size.**
 
 ## Turbo LoRA notes
 
-`low_vram` is a real trade, not just a memory switch. On, the LoRA merges into
-the weights: fastest run, lowest peak VRAM, softer picture on quantized bases.
-Off, it is applied at run time: slower, more detail survives. I use it on while
-hunting for a seed and off for the final render.
+**Leave `low_vram` ON.** The name is misleading: it is not a memory setting, it
+picks how the LoRA reaches the model, and that changes the picture.
 
-**Strength** is the quality dial, default 1.0. Blurry with motion smear, push to
-1.05 or 1.2. Over-sharp grain, pull down to 0.8 or 0.95.
+Off, the LoRA runs as a hook on all 208 modules and its delta is applied at full
+precision on every pass. On, the delta is folded into the weights once at load.
+Our base is int8, so folding rounds part of the delta away, which makes the
+merged path a weaker LoRA in practice.
+
+That turns out to be what you want. I measured one frame, one seed, one prompt,
+a close-up face at 1344x768:
+
+| config | steps | skin | detail energy | run |
+|---|---|---|---|---|
+| bypass, strength 1.0 | 4 | scaly, reptilian | 3.38 | 3:56 |
+| bypass, strength 1.0 | 8 | still scaly | 3.38 | 6:41 |
+| bypass, strength 1.0 | 12 | worst of all | — | 9:36 |
+| bypass, strength 0.85 | 4 | clean | — | 3:51 |
+| **merged, strength 1.0** | **4** | **clean** | **2.57** | **3:46** |
+| no LoRA (reference) | 20 | clean | 2.46 | 14:36 |
+
+The detail column is laplacian energy over the whole clip. The bypass path sits
+37% above the no-LoRA reference; merged lands within 4% of it. So the extra
+sharpness in bypass is not detail, it is the artefact. On a close-up the same
+excess turns skin into a regular lattice.
+
+**More steps make it worse, not better.** 8 and 12 steps kept the lattice and
+sharpened it. Step count is not the dial here.
+
+What merged costs: large-scale motion measures about 9% below the 20-step
+reference, so the action is slightly calmer. Nothing else measurable.
+
+**Strength** is the other dial, default 1.0. Blurry with motion smear, push to
+1.05 or 1.2. Artefacts on skin with `low_vram` off, pull down to 0.85, which
+lands close to what merged does anyway.
+
+This is specific to a quantized base. On full bf16 weights the fold loses much
+less, so merged will not rescue you there and lowering strength is the move.
 
 The custom sampler is not optional. Video and audio inside H3 follow two
 different flow schedules, and a stock sampler over-steps the audio at 4 steps
