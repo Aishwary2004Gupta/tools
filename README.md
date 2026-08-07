@@ -16,6 +16,12 @@ along if you run models at home, there is a lot of it.
 |---|---|
 | [`comfyui/workflows/video/minimax-h3`](comfyui/workflows/video/minimax-h3) | six workflows for MiniMax H3 (video + synchronized audio in one pass), with a 4-step Turbo LoRA that takes a 5-second 1344x768 clip from 11:08 down to 3:45. Text-to-video, image-to-video, reference-to-video, 1080p upscale. Every graph carries guide cards on the canvas |
 
+### Skills
+
+| path | what it is |
+|---|---|
+| [`skills/video/minimax-h3`](skills/video/minimax-h3) | agent skills that turn a rough idea into a proper MiniMax H3 prompt: text-to-video, full-reference (images/video/audio in), and chaining 15-second clips into long videos with character and voice continuity |
+
 More lands here as I clean it up.
 
 ## The rig everything is measured on
