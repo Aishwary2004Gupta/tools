@@ -128,11 +128,44 @@ keep `low_vram` ON in the Turbo LoRA node, which is the default. The workflow
 **Describe open space explicitly in the sound**, for example flat gunshots with
 no echo. Otherwise H3 adds room reverb in the middle of a desert.
 
+### Hide the seam in the writing
+
+End every shot but the last on a held frame, and open the next one from that
+same held frame. One sentence at the end of the prompt does it: *the camera
+settles on the canyon ahead, the frame going still for a beat.* Then start the
+next prompt with *continuing from the exact first frame,* plus the pose the
+character was left in.
+
+This works because the seam is only visible where motion jumps across it.
+Measured on a 30-second port chase: movement on the five frames around the joint
+was 0.2 to 2.2 against a median of 13.1 for the clip, and the audio level
+stepped by 0.025 where a typical transition in the same track steps by 0.127.
+Nothing to see and nothing to hear.
+
+The reverse is what produces the classic click: a shot ending mid-gunfire
+against one opening on rain. On an earlier desert clip that seam jumped 0.65
+against a 0.21 threshold. The 40 ms crossfade is too short to cover it, so
+handle it in the prompt rather than in the editor.
+
 ## Settings
 
 **SHOT DURATION** is in seconds on the green node, frames are computed for you.
 The model only takes lengths of the form 17k+5, so it rounds up to the nearest
 valid one: 10 seconds becomes 243 frames, 5 becomes 124, 15 becomes 362.
+
+**Short shots are cheaper than long ones for the same total length.** Attention
+cost grows faster than frame count, so cutting a clip into more, shorter shots
+wins. Measured at 1344x768 on 4x RTX 3090:
+
+| shot length | frames | seconds per step | per shot |
+|---|---|---|---|
+| 10 s | 243 | ~135 s | ~11 min |
+| 15 s | 362 | ~290 s | ~20 min |
+
+A 50% longer shot costs more than twice as much. Thirty seconds as three shots
+of 10 seconds takes 33 minutes; the same thirty seconds as two shots of 15 takes
+about 42. Reach for 15-second shots when a single continuous take matters, not
+to save time.
 
 **Total length runs slightly under the sum of the shots**, because each seam
 drops the duplicated frame. Four shots of 243 frames give 969, not 972, so 40.4
@@ -147,10 +180,9 @@ conditioning, not the seed.
 
 ## Known limits
 
-**Audio seams.** The crossfade is hardcoded at 40 ms. When a loud shot meets a
-quiet one you get a click at the joint. On a desert clip I measured a jump of
-0.65 against a 0.21 track-wide threshold, at the gunfire-to-running seam. Fix it
-in your editor.
+**Audio seams.** The crossfade is hardcoded at 40 ms, too short to cover a loud
+shot meeting a quiet one. Write the seam quiet instead of fixing it afterwards,
+see [Hide the seam in the writing](#hide-the-seam-in-the-writing).
 
 **Inherited damage.** The last frame of a shot conditions the next one, so any
 defect crosses the seam and sets in. A bad first shot means a bad chain.
