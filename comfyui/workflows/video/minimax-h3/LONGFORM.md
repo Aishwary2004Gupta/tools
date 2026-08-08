@@ -72,7 +72,7 @@ pushes the text encoder to CPU and calls `free_memory` on 90% of the default
 device. On a single card that is the whole point: it stops the DiT loading
 partially and streaming weights from RAM, which the pack author measured as 60
 minutes against 15 on one render. On a multi-GPU split it backfires: if the DiT
-sits on cuda:0 and cuda:1 while the encoder sits on cuda:2 and cuda:3 they never
+runs on cuda:0 and cuda:1 while the encoder runs on cuda:2 and cuda:3 they never
 compete for memory, and the purge evicts the DiT instead, which then reloads
 every shot. **Single card: leave it ON. Split across cards: turn it OFF.**
 
@@ -93,22 +93,25 @@ The most common failure is not a broken setup, it is an overloaded prompt.
 Smears trailing behind moving objects and ripples across the background come
 from asking for too much at once.
 
-Measured on the same 124-frame slice, six events against two:
+Measured on the same 124-frame slice, one seed, six events against two:
 
-| prompt | motion | smear area |
-|---|---|---|
-| six events, 4 steps | 15.44 | 30.4% |
-| six events, 8 steps | 18.03 | 31.3% |
-| six events, 20 steps, no LoRA | 15.31 | 29.1% |
-| **two events, 4 steps** | **5.07** | **8.7%** |
+| prompt | steps | LoRA | frames changing |
+|---|---|---|---|
+| six events | 4 | turbo | 30.4% |
+| six events | 8 | turbo | 31.3% |
+| six events | 20 | none | 29.1% |
+| **two events** | **4** | **turbo** | **8.7%** |
 
-Motion is mean frame-to-frame difference, smear area is the share of pixels
-changing between neighbouring frames.
+⚠️ That last column counts pixels changing between neighbouring frames, so it
+measures **motion, not blur**. A sharp fast pan and a smeared one score the
+same, which is why the three top rows look identical. Do not read the third row
+as "Turbo is free": watch those two clips side by side and the 20-step run
+without the LoRA is clearly cleaner, keeping skin texture on faces and readable
+edges on anything moving fast.
 
-Read the third row carefully: **dropping Turbo and paying four times the render
-time changes nothing.** This is not a distillation artefact and not the price of
-speed. The model cannot reconcile six simultaneous events in ten seconds, so it
-smears whatever it cannot resolve. Only cutting events fixes it.
+What the table does show is the gap between six events and two. The model
+cannot resolve that many things happening at once, so it smears whatever it
+cannot place, and cutting events helps at any step count.
 
 Keep it to three beats per ten seconds and one camera move per shot. Six
 shooters plus return fire plus two bodies over a railing plus a magazine change

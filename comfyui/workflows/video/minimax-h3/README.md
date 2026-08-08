@@ -135,7 +135,7 @@ different setup, this is the first thing to change.**
   weights are spread.
 
 `CLIPLoaderDisTorch2MultiGPU` does the same for the 25.3 GB text encoder, in my
-case across `cuda:2` and `cuda:3`. Both VAE loaders sit on `cuda:1`.
+case across `cuda:2` and `cuda:3`. Both VAE loaders load onto `cuda:1`.
 
 **One 24 GB card.** Point every loader at `cuda:0` and let DisTorch offload the
 rest to system RAM: set the allocation to something like `cuda:0,20gb` and keep
@@ -216,7 +216,7 @@ a close-up face at 1344x768:
 | **merged, strength 1.0** | **4** | **clean** | **2.57** | **3:46** |
 | no LoRA (reference) | 20 | clean | 2.46 | 14:36 |
 
-The detail column is laplacian energy over the whole clip. The bypass path sits
+The detail column is laplacian energy over the whole clip. The bypass path lands
 37% above the no-LoRA reference; merged lands within 4% of it. So the extra
 sharpness in bypass is not detail, it is the artefact. On a close-up the same
 excess turns skin into a regular lattice.
@@ -250,7 +250,7 @@ Four actions, no rewiring beyond one drag:
 2. Ctrl+B on `Sigma Shift` so it turns back on;
 3. set steps to 20 in `BasicScheduler`;
 4. drag the `sampler` input of `SamplerCustomAdvanced` from the turbo sampler to
-   `KSamplerSelect`, which sits right next to it.
+   `KSamplerSelect`, which is right next to it.
 
 Or just open `06-text-to-video-base-20steps.json`.
 
