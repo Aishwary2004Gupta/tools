@@ -90,7 +90,7 @@ hf download Comfy-Org/MiniMax-H3 \
 `ref2va` is the reference checkpoint used by 03. If you never touch reference
 mode, skip that one.
 
-### Turbo LoRA (this is where the 3x comes from)
+### Turbo LoRA, 3x faster sampling
 
 From [larryvrh/MiniMax-H3-Turbo-Lora](https://huggingface.co/larryvrh/MiniMax-H3-Turbo-Lora):
 
@@ -270,7 +270,7 @@ Two settings that will bite you:
   clears it.
 
 The upscaler runs on a single card, it does not spread weights across devices.
-That is where the small batch comes from.
+That is why the batch has to stay small.
 
 ## Going longer than 15 seconds
 
