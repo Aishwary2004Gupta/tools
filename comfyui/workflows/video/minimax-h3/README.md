@@ -1,6 +1,6 @@
 # MiniMax H3 workflows for ComfyUI
 
-Six ComfyUI workflows for MiniMax H3, the open-weights model that generates
+Seven ComfyUI workflows for MiniMax H3, the open-weights model that generates
 video **and synchronized audio in one pass**. Built and measured on a
 4x RTX 3090 rig (96 GB total, 220 W per card, PCIe 3.0 x16, no NVLink).
 
@@ -10,6 +10,10 @@ a separate file and as a switch inside every graph.
 
 Every workflow carries its own guide cards on the canvas: what each knob does,
 what it costs, and which values I actually run.
+
+**Want a 40-second clip rather than 15?** H3 cannot generate one in a single
+pass, so it is built by chaining shots. Setup and the rules that keep it from
+smearing are in [LONGFORM.md](LONGFORM.md).
 
 ## The files
 
@@ -21,8 +25,10 @@ what it costs, and which values I actually run.
 | `04-upscale.json` | upscale a finished clip to 1080p with SeedVR2 |
 | `05-text-to-video-plus-upscale.json` | 01 with the upscale branch built in (muted by default) |
 | `06-text-to-video-base-20steps.json` | the plain 20-step version, no Turbo LoRA |
+| `07-long-form-chained-shots.json` | 30 to 60 second clips built by chaining shots — see **[LONGFORM.md](LONGFORM.md)** |
 
-Drag any of them onto the ComfyUI canvas.
+Drag any of them onto the ComfyUI canvas. Workflow 07 needs two extra install
+steps, both covered in [LONGFORM.md](LONGFORM.md).
 
 ## What you need to install
 
@@ -265,6 +271,22 @@ Two settings that will bite you:
 
 The upscaler runs on a single card, it does not spread weights across devices.
 That is where the small batch comes from.
+
+## Going longer than 15 seconds
+
+A single generation caps at 362 frames. For 30 to 60 second clips there is
+`07-long-form-chained-shots.json`, which chains shots: each one starts from the
+last frame of the previous, seams are trimmed, audio runs through. 30 seconds
+takes 33 minutes on this rig, 40 seconds takes 44.
+
+It needs an extra node pack and a small in-memory patch that lets the Turbo
+sampler reach the chain (without it you are stuck at 20 steps and roughly three
+hours for the same clip). Both are four commands, in **[LONGFORM.md](LONGFORM.md)**.
+
+That file also carries the measurement worth reading before you write a long
+script: an overloaded prompt smears identically at 4 steps, 8 steps and at 20
+steps with no LoRA at all. It is not a speed artefact, it is asking for too much
+at once.
 
 ## Gotchas I hit so you do not have to
 

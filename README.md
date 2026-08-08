@@ -14,7 +14,7 @@ along if you run models at home, there is a lot of it.
 
 | path | what it is |
 |---|---|
-| [`comfyui/workflows/video/minimax-h3`](comfyui/workflows/video/minimax-h3) | six workflows for MiniMax H3 (video + synchronized audio in one pass), with a 4-step Turbo LoRA that takes a 5-second 1344x768 clip from 11:08 down to 3:45. Text-to-video, image-to-video, reference-to-video, 1080p upscale. Every graph carries guide cards on the canvas |
+| [`comfyui/workflows/video/minimax-h3`](comfyui/workflows/video/minimax-h3) | seven workflows for MiniMax H3 (video + synchronized audio in one pass), with a 4-step Turbo LoRA that takes a 5-second 1344x768 clip from 11:08 down to 3:45. Text-to-video, image-to-video, reference-to-video, 1080p upscale, and [long-form chaining](comfyui/workflows/video/minimax-h3/LONGFORM.md) for 30 to 60 second clips. Every graph carries guide cards on the canvas |
 
 ### Skills
 
