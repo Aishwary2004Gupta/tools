@@ -514,7 +514,8 @@
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        24.0
+        24.0,
+        8
       ],
       "title": "Mux with audio"
     },
