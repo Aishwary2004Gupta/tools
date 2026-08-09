@@ -36,7 +36,7 @@ on disk**, so `git pull` in the pack will not wipe it:
 cd ComfyUI/custom_nodes
 mkdir -p ComfyUI-H3-Multishot-Patch
 curl -o ComfyUI-H3-Multishot-Patch/__init__.py \
-  https://raw.githubusercontent.com/alesha-pro/tools/main/comfyui/workflows/video/minimax-h3/longform-patch/__init__.py
+  https://raw.githubusercontent.com/alesha-pro/tools/main/minimax-h3/custom-nodes/longform-patch/__init__.py
 ```
 
 ### 3. Restart ComfyUI and confirm
