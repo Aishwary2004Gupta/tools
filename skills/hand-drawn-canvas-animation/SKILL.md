@@ -23,7 +23,7 @@ two demo scenes).
 | `assets/film-template.html` | the file you copy and edit: brief, palette, a puppet, two demo scenes, score, `defineFilm`. |
 | `examples/four-looks.html` | a paper boat through riso, screen, pencil and ink with the devices of each look. Read it when a recipe from N to Z is unclear. |
 | `examples/fly-style.html` | a 9.5 s ink film: peach, ink blot, dividing egg, camera-follow flight, compound-eye mosaic. Read it for recipes A to H. |
-| `scripts/render.mjs`, `scripts/package.json` | headless render: PNG frames, mp4 on twos, contact sheet, `--only` for spot checks. |
+| `scripts/render.mjs`, `scripts/package.json` | headless render from the page's own canvas: `--grid` sheet in seconds, `--only` spot frames, `--ar` and `--width` for format and resolution, full mp4 on twos with a contact sheet. |
 | `references/style.md` | the four looks, the 14 rules, the vocabulary table (term → look → kit call). Read before drawing anything. |
 | `references/palettes.md` | the palette schema, presets, deriving, tints and shades, finishes and plates. Read before picking colours. |
 | `references/scenes.md` | 26 scene recipes across the four looks, timing rules, score motifs. Read while writing the beat sheet. |
@@ -37,7 +37,7 @@ Do the steps in order. You cannot judge a frame from code; every "look" means
 open the PNG and look at it.
 
 1. **Brief.** Fill `references/brief-template.md` from the request. Ask at
-   most one round of questions (subject, length, look). Invent the rest.
+   most one round of questions (subject, length, format, look). Invent the rest.
    Decide the anchor: the one element that survives every cut.
 2. **Project folder.** One folder per film:
    ```bash
@@ -54,14 +54,21 @@ open the PNG and look at it.
    Keep `styleSheet` and `paletteSheet` as the first two timeline entries
    while you work. Render and look:
    ```bash
-   node render.mjs <film>.html --only 0,12
+   node render.mjs <film>.html --only 0,12 --ar 1:1
    ```
+   `--ar 16:9` or `--ar 9:16` for other formats; `--width 1920` for a larger
+   output. Scenes place things relative to `CX`, `CY`, `W`, `H`, never at
+   literal pixels, so the format is a render-time choice.
 5. **Puppets.** Build each character or object in the PUPPET section per
    `references/architecture.md`. Put it on the style sheet at scales 0.6, 1
    and 1.8. It must read at 240 px.
-6. **Scenes, one at a time.** Implement, register in the timeline, render
-   the first, middle and last drawn frame with `--only`, look, fix, next.
-   Drawn frame index = seconds × 12.
+6. **Scenes, one at a time.** Implement, register in the timeline, then
+   ```bash
+   node render.mjs <film>.html --grid 24
+   ```
+   and look at `out/<film>-grid.jpg`: 24 evenly spaced frames of the whole
+   film in a few seconds. Fix what does not read, then the next scene. Use
+   `--only` for a single frame at full size. Drawn frame index = seconds × 12.
 7. **Full render and review.** `node render.mjs <film>.html`, open
    `out/<film>-contact.jpg`, run the checklist below, fix, repeat until clean.
    Remove the sheet entries from the timeline for the final render.
@@ -108,6 +115,7 @@ Each item found on the contact sheet or in a spot frame is a defect:
 - a riso card with no paper showing, or a subject tinted by every plate;
 - text in the frame outside the style sheet and the sign-off;
 - the anchor missing from a shot;
+- a literal pixel position in a scene instead of `CX`, `CY`, `W`, `H`;
 - a cue time not on the 1/12 s grid;
 - page errors printed by `render.mjs`.
 

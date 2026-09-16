@@ -14,7 +14,20 @@
 // ============================================================
 
 // ===================== CONFIG =====================
-const W = 1080, H = 1080;
+// Logical frame: the short side is always 1080 units, the long side follows the aspect ratio.
+// Scenes draw in logical units. S scales them to the output width chosen at render time.
+const SHORT = 1080;
+let W = 1080, H = 1080, S = 1, CX = 540, CY = 540, OUT_W = 1080, OUT_H = 1080;
+const _layers = [];   // every layer() canvas, resized when the format changes
+function setFormat({ ar = '1:1', width } = {}) {
+  const [a, b] = String(ar).split(/[:x\/]/).map(Number); const r = (a > 0 && b > 0) ? a / b : 1;
+  if (r >= 1) { H = SHORT; W = Math.round(SHORT * r); } else { W = SHORT; H = Math.round(SHORT / r); }
+  S = width ? width / W : 1; OUT_H = 2 * Math.round(H * S / 2); S = OUT_H / H; OUT_W = 2 * Math.round(W * S / 2);
+  CX = W / 2; CY = H / 2;
+  for (const L of _layers) { L.o.width = Math.round(L.w * S); L.o.height = Math.round(L.h * S); }   // layers made at file scope follow the format
+  return { W, H, S, OUT_W, OUT_H };
+}
+{ const q = new URLSearchParams(location.search); if (q.has('ar') || q.has('w')) setFormat({ ar: q.get('ar') || '1:1', width: +q.get('w') || undefined }); }
 const FPS_DRAW = 12, FPS_OUT = 24;          // drawn on twos, packed to 24 fps
 const TAU = Math.PI * 2;
 const HAND_FONT = '"Bradley Hand", "Segoe Script", "Chalkboard", "Comic Sans MS", cursive';
@@ -124,9 +137,10 @@ function roundRectPath(x, y, w, h, r) { const p = new Path2D(); p.roundRect(x, y
 function polyPath(pts, close = true) { const p = new Path2D(); pts.forEach((q, i) => i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])); if (close) p.closePath(); return p; }
 function pathLength(pts, close) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (close) L += Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]); return L; }
 function bez(p0, p1, p2, p3, t) { const u = 1 - t; return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]; }
-function layer(w = W, h = H) { const o = document.createElement('canvas'); o.width = w; o.height = h; return o; }
-function cam(c, x, y, zoom, rot = 0) { c.setTransform(1, 0, 0, 1, 0, 0); c.translate(W / 2, H / 2); c.scale(zoom, zoom); c.rotate(rot); c.translate(-x, -y); }
-const resetT = c => c.setTransform(1, 0, 0, 1, 0, 0);
+function layer(w, h) { const full = w === undefined; w = w ?? W; h = h ?? H; const o = document.createElement('canvas'); o.width = Math.round(w * S); o.height = Math.round(h * S); if (full) _layers.push({ o, get w() { return W; }, get h() { return H; } }); else _layers.push({ o, w, h }); return o; }   // output pixels, logical size w x h
+function cam(c, x, y, zoom, rot = 0) { c.setTransform(S, 0, 0, S, 0, 0); c.translate(W / 2, H / 2); c.scale(zoom, zoom); c.rotate(rot); c.translate(-x, -y); }
+const resetT = c => c.setTransform(S, 0, 0, S, 0, 0);   // identity in logical units
+const blit = (c, src) => { c.save(); resetT(c); c.drawImage(src, 0, 0, W, H); c.restore(); };   // draw a layer full-frame
 
 // ===================== MARKS =====================
 // wob: polyline with seeded jitter (amp 1..3 px). Use for every visible outline.
@@ -191,7 +205,7 @@ function dotScreen(c, path, box, o = {}) {
 // plate + printPlate: real colour separations. Draw each ink's coverage in black on a white plate, then print
 // the plates in order with multiply blending. Overlaps mix like ink on paper. This is the flipbook's whole look.
 function plate() { const L = layer(); const g = L.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); return L; }
-const _cov = layer(160, 160);
+const _cov = document.createElement('canvas');
 function printPlate(c, src, o = {}) {
   const { cell = 7, ink = PAL.inks[0], angle = .26, jitter = .2, seed = 1, gain = 1, maxCov = .78, blend = 'multiply', al = .95 } = o; const r = rng(seed);
   const sw = Math.ceil(W / cell), sh = Math.ceil(H / cell); _cov.width = sw; _cov.height = sh; const g = _cov.getContext('2d'); g.drawImage(src, 0, 0, sw, sh); const d = g.getImageData(0, 0, sw, sh).data;
@@ -256,13 +270,13 @@ function signOff(c, a, b, o = {}) { const { x = 540, y = 540, size = 60, ink = P
 function selfDraw(c, pts, progress, seed, amp = 1.5, close = false) { const L = pathLength(pts, close); c.save(); c.setLineDash([L * progress, L]); wob(c, pts, amp, seed, close); c.restore(); }
 // blot: reveal `src` inside a growing ink blot (screen coords) with a bristly fringe
 function blot(c, src, cx, cy, R, seed, fringe = PAL.night) { if (R <= 0) return; const r = rng(seed), path = new Path2D(); for (let i = 0; i < 72; i++) { const a = i / 72 * TAU, rr = R * (1 + (r() - .5) * .16), x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr; i ? path.lineTo(x, y) : path.moveTo(x, y); } path.closePath();
-  c.save(); resetT(c); c.clip(path); c.drawImage(src, 0, 0); c.restore(); c.save(); resetT(c); c.strokeStyle = fringe; c.lineWidth = 1.6; c.globalAlpha = .9;
+  c.save(); resetT(c); c.clip(path); c.drawImage(src, 0, 0, W, H); c.restore(); c.save(); resetT(c); c.strokeStyle = fringe; c.lineWidth = 1.6; c.globalAlpha = .9;
   for (let i = 0; i < 420; i++) { const a = r() * TAU, rad = R * (1 + (r() - .5) * .14), L = 10 + r() * 38, x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); c.stroke(); } c.restore(); }
 // iris: draw fn inside a circle, rest untouched (or filled with `outside`)
 function iris(c, cx, cy, r, fn, outside) { c.save(); resetT(c); if (outside) { c.fillStyle = outside; c.fillRect(0, 0, W, H); } c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.clip(); fn(c); c.restore(); }
 // mosaic: redraw `src` as flat hex cells of size s (compound-eye POV). Clip to an iris first if you want one.
-function mosaic(c, src, s, box = [0, 0, W, H], tintCol = 'rgba(120,160,255,.10)') { const img = src.getContext('2d').getImageData(0, 0, W, H).data; c.save(); resetT(c);
-  hexCells(box, s, (x, y) => { const xi = clamp(Math.round(x), 0, W - 1), yi = clamp(Math.round(y), 0, H - 1), k = (yi * W + xi) * 4; c.fillStyle = `rgb(${img[k] * .92 | 0},${img[k + 1] * .92 | 0},${img[k + 2] * .95 | 0})`; const hp = hexPath(x, y, s); c.fill(hp); c.strokeStyle = 'rgba(20,25,60,.55)'; c.lineWidth = 1; c.stroke(hp); });
+function mosaic(c, src, s, box = [0, 0, W, H], tintCol = 'rgba(120,160,255,.10)') { const ow = src.width, oh = src.height, img = src.getContext('2d').getImageData(0, 0, ow, oh).data; c.save(); resetT(c);
+  hexCells(box, s, (x, y) => { const xi = clamp(Math.round(x * S), 0, ow - 1), yi = clamp(Math.round(y * S), 0, oh - 1), k = (yi * ow + xi) * 4; c.fillStyle = `rgb(${img[k] * .92 | 0},${img[k + 1] * .92 | 0},${img[k + 2] * .95 | 0})`; const hp = hexPath(x, y, s); c.fill(hp); c.strokeStyle = 'rgba(20,25,60,.55)'; c.lineWidth = 1; c.stroke(hp); });
   if (tintCol) { c.fillStyle = tintCol; c.fillRect(box[0], box[1], box[2], box[3]); } c.restore(); }
 // montage: cards[] are scene functions; shows one per `per` seconds, hard cuts. Returns the index shown.
 function montage(c, cards, tau, per = .25, i = 0) { const k = Math.min(cards.length - 1, Math.floor(tau / per)); cards[k](c, tau - k * per, i); return k; }
@@ -309,21 +323,37 @@ function paletteSheet(c) { paper(c); c.font = '18px ui-monospace, Menlo, monospa
 //   timeline  [{ name, dur, fn(c, tau, i) }]   tau = seconds into the scene, i = global drawn frame
 //   score     (ac, t0, dest) => schedules notes; optional
 let FILM = null, ctx = null, cv = null;
-function defineFilm({ palette, timeline, score }) {
+//   format    { ar: '16:9', width: 1920 }; the query string ?ar=9:16&w=1080 overrides it at render time
+function defineFilm({ palette, timeline, score, format = {} }) {
+  const qs = new URLSearchParams(location.search);
+  setFormat({ ar: qs.get('ar') || format.ar || '1:1', width: +qs.get('w') || format.width || undefined });
   if (palette) usePalette(palette);
-  cv = document.getElementById('c'); if (!cv) { cv = document.createElement('canvas'); cv.id = 'c'; document.body.prepend(cv); } cv.width = W; cv.height = H; ctx = cv.getContext('2d');
+  cv = document.getElementById('c'); if (!cv) { cv = document.createElement('canvas'); cv.id = 'c'; document.body.prepend(cv); } cv.width = OUT_W; cv.height = OUT_H; ctx = cv.getContext('2d');
   const DUR = timeline.reduce((a, s) => a + s.dur, 0), NDRAW = Math.round(DUR * FPS_DRAW);
   FILM = { timeline, score, DUR, NDRAW };
-  const qs = new URLSearchParams(location.search);
   window.__drawFrame = i => { cur = -1; show(i); }; window.__NDRAW = NDRAW; window.__FILM = FILM;
-  if (qs.has('bare')) { document.body.style.cssText = 'margin:0;padding:0;background:#000'; cv.style.cssText = 'width:1080px;height:1080px;display:block'; document.querySelectorAll('.bar').forEach(b => b.hidden = true); }
+  window.__size = { w: OUT_W, h: OUT_H, W, H, S };
+  window.__frame = i => { cur = -1; show(i); return cv.toDataURL('image/png'); };            // exact pixels, no screenshot
+  window.__grid = (n = 24, cellW = 240) => gridSheet(n, cellW).toDataURL('image/jpeg', .9);  // n evenly spaced frames
+  if (qs.has('bare')) { document.body.style.cssText = 'margin:0;padding:0;background:#000'; cv.style.cssText = `width:${OUT_W}px;height:${OUT_H}px;display:block`; document.querySelectorAll('.bar').forEach(b => b.hidden = true); }
   else buildPlayer();
-  show(qs.has('frame') ? +qs.get('frame') : 0);
+  if (qs.has('grid')) { const img = new Image(); img.src = window.__grid(+qs.get('grid') || 24, 240); img.style.cssText = 'max-width:96vw'; cv.hidden = true; cv.after(img); }
+  else show(qs.has('frame') ? +qs.get('frame') : 0);
+  window.__ready = true;
+}
+// gridSheet: n evenly spaced drawn frames tiled 6 across, labelled with index and time. The first thing to look at.
+function gridSheet(n = 24, cellW = 240) {
+  const cols = 6, rows = Math.ceil(n / cols), cellH = Math.round(cellW * OUT_H / OUT_W), pad = 18, sheet = document.createElement('canvas');
+  sheet.width = cols * cellW; sheet.height = rows * (cellH + pad); const g = sheet.getContext('2d'); g.fillStyle = '#141414'; g.fillRect(0, 0, sheet.width, sheet.height);
+  g.font = '12px ui-monospace, Menlo, monospace'; g.fillStyle = '#e6e6e6';
+  for (let k = 0; k < n; k++) { const i = Math.round(k * (FILM.NDRAW - 1) / Math.max(1, n - 1)); cur = -1; show(i);
+    const x = (k % cols) * cellW, y = Math.floor(k / cols) * (cellH + pad); g.drawImage(cv, x, y, cellW, cellH); g.fillText(`${String(i).padStart(3, '0')}  ${(i / FPS_DRAW).toFixed(2)}s`, x + 4, y + cellH + 13); }
+  cur = -1; return sheet;
 }
 function drawFrame(i) { const { timeline } = FILM; const t = i / FPS_DRAW; let acc = 0;
   for (let k = 0; k < timeline.length; k++) { const s = timeline[k]; if (t < acc + s.dur || k === timeline.length - 1) { resetT(ctx); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; s.fn(ctx, t - acc, i); resetT(ctx); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; return s.name; } acc += s.dur; } }
 let cur = -1, playing = false, start = 0, sound = false, ac = null, ui = {};
-function show(i) { if (i === cur) return; cur = i; const name = drawFrame(i); if (ui.scrub) { ui.scrub.value = i; ui.info.textContent = `draw ${String(i).padStart(3, '0')}/${FILM.NDRAW}  t=${(i / FPS_DRAW).toFixed(2)}s  ${name}`; } }
+function show(i) { if (i === cur) return; cur = i; const name = drawFrame(i); if (ui.scrub) { ui.scrub.value = i; ui.info.textContent = `draw ${String(i).padStart(3, '0')}/${FILM.NDRAW}  t=${(i / FPS_DRAW).toFixed(2)}s  ${name}  ${W}x${H}@${OUT_W}px`; } }
 function loop() { if (!playing) return; const t = ((performance.now() - start) / 1000) % FILM.DUR; show(Math.floor(t * FPS_DRAW)); requestAnimationFrame(loop); }
 function buildPlayer() {
   const bar = document.createElement('div'); bar.className = 'bar'; bar.innerHTML = '<button id="play">play</button><button id="snd">sound: off</button><input id="scrub" type="range" min="0" max="0" value="0"><span id="info"></span><button id="exp">export PNG frames</button><button id="wav">export score.wav</button><span id="msg"></span>';

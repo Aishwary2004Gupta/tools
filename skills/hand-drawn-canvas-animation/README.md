@@ -36,7 +36,7 @@ feel than any texture.
 | [`assets/film-template.html`](assets/film-template.html) | the file you copy: brief, palette, a puppet, two demo scenes, score |
 | [`examples/four-looks.html`](examples/four-looks.html) | a paper boat through riso, screen, pencil and ink, 13.5 s |
 | [`examples/fly-style.html`](examples/fly-style.html) | a 9.5 s ink film: peach, ink blot, dividing egg, flight through a kitchen, compound-eye view |
-| [`scripts/render.mjs`](scripts/render.mjs) | frames, mp4 and contact sheet from one headless Chrome |
+| [`scripts/render.mjs`](scripts/render.mjs) | a 24-frame sheet in seconds, spot frames, format and resolution flags, mp4 and contact sheet, from one headless Chrome |
 | [`references/style.md`](references/style.md) | the four looks, fourteen rules, a table from plain words to kit calls |
 | [`references/palettes.md`](references/palettes.md) | the palette schema, presets, deriving, tints and shades, finishes and riso plates |
 | [`references/scenes.md`](references/scenes.md) | twenty-six scene recipes, timing, score motifs |
@@ -75,15 +75,19 @@ mkdir my-film && cp hand-drawn-canvas-animation/assets/core.js my-film/
 cp hand-drawn-canvas-animation/assets/film-template.html my-film/my-film.html
 cp hand-drawn-canvas-animation/scripts/render.mjs hand-drawn-canvas-animation/scripts/package.json my-film/
 cd my-film && npm i
-node render.mjs my-film.html --only 0,12,30
-node render.mjs my-film.html
+node render.mjs my-film.html --grid 24
+node render.mjs my-film.html --ar 9:16 --width 1080
 ```
 
-The first render writes three PNGs to check. The second writes
-`out/my-film.mp4` and `out/my-film-contact.jpg`. On an M4 Pro the 13.5 s
-four-looks example renders in about 12 seconds and the fly film in about 7. A
-frame that throws is reported with its number and time, and then no mp4 is
-built.
+The first command writes a sheet of 24 evenly spaced frames in a couple of
+seconds; look at it before anything else. The second writes `out/my-film.mp4`
+and `out/my-film-contact.jpg`, here as a vertical film. Frames come from the
+page's own canvas, not from screenshots, so the output width is a free choice
+and the drawing stays crisp at 4K. Scenes draw in logical units with the
+short side fixed at 1080 and place things relative to the centre, so one film
+renders square, wide or tall. On an M4 Pro the 13.5 s four-looks example
+renders in about 5 seconds. A frame that throws is reported with its number
+and time, and then no mp4 is built.
 
 Open the HTML file directly in a browser to scrub, play with sound, and export
 `score.wav`. Mux it with:

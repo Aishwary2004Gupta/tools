@@ -14,6 +14,26 @@ my-film/
 `my-film.html` has five sections in this order: brief and beat sheet (a
 comment), palette, puppets, scenes, score, and the `defineFilm` call.
 
+## Format and resolution
+
+The frame is logical: the short side is always 1080 units and the long side
+follows the aspect ratio, so a 16:9 film is 1920 x 1080 units and a 9:16 film
+is 1080 x 1920. Scenes draw in these units and place things relative to `CX`,
+`CY`, `W` and `H`, never at literal pixel positions, and the same scene then
+works in any format. Output resolution is a separate choice made at render
+time: `--width 1920` scales everything by `S` on the way to the canvas, lines
+and dots included, so a 4K render is as crisp as a 1080 one.
+
+```bash
+node render.mjs film.html --grid 24 --ar 9:16              # vertical, short side 1080
+node render.mjs film.html --ar 16:9 --width 3840           # 4K landscape
+```
+
+`defineFilm({ format: { ar: '16:9', width: 1920 } })` sets the film's default;
+the query string (`?ar=16:9&w=1920`) overrides it. `layer()` canvases made at
+file scope follow the format automatically. Output height is forced even, as
+libx264 needs it.
+
 ## Invariants
 
 - `drawFrame(i)` is a pure function of the drawn-frame index. Scenes keep no
@@ -28,29 +48,33 @@ comment), palette, puppets, scenes, score, and the `defineFilm` call.
   origin at the body centre, forward = up (negative y); place them with
   `translate`, `rotate`, `scale`.
 - Compositing uses layers: render A into `L1`, B into `L2`, compose on the
-  main context (`blot`, `iris`, `mosaic`, `flicker`). Make layers once with
-  `layer()` at file scope.
+  main context (`blot`, `iris`, `mosaic`, `flicker`, `blit`). Make layers once
+  with `layer()` at file scope; draw a layer full-frame with `blit(c, L)`, not
+  `drawImage(L, 0, 0)`, because layers live in output pixels.
 - `PAL` is global and mutable through `usePalette`. A scene that needs a
   different look calls `usePalette` at its top; the next scene sets its own.
-- Hooks for the renderer: `window.__drawFrame(i)`, `window.__NDRAW`, and the
-  query string `?frame=N&bare=1`.
+- Hooks for the renderer: `window.__frame(i)` returns the frame as a PNG data
+  URL straight from the canvas (no screenshot, so CSS and device pixel ratio
+  never matter), `window.__grid(n)` returns a sheet of n evenly spaced frames,
+  `window.__NDRAW`, `window.__size`, `window.__ready`; query string
+  `?frame=N&bare=1&ar=16:9&w=1920&grid=24`.
 
 ## API index (assets/core.js)
 
 | section | names |
 |---|---|
-| config | `W`, `H`, `FPS_DRAW`, `FPS_OUT`, `TAU`, `HAND_FONT` |
+| config | `W`, `H`, `CX`, `CY`, `S`, `OUT_W`, `OUT_H`, `SHORT`, `setFormat({ar, width})`, `FPS_DRAW`, `FPS_OUT`, `TAU`, `HAND_FONT` |
 | colour | `lerp`, `clamp`, `parseColor`, `toHex`, `mix`, `tint`, `shade`, `alpha`, `hsl`, `withHsl`, `rotateHue`, `saturate`, `lighten`, `ramp`, `harmony` |
 | palettes | `PALETTES`, `PAL`, `usePalette`, `makePalette`, `derivePalette`, `duotone` |
 | random, easing | `rng(seed)`, `easeIO`, `easeOut`, `easeIn`, `sm(a, b, t, ease)`, `flicker(i, period)`, `pulse(i, every, hold)` |
-| geometry | `ellPts`, `ellPath`, `circPath`, `rectPath`, `roundRectPath`, `polyPath`, `pathLength`, `bez`, `layer(w, h)`, `cam`, `resetT` |
+| geometry | `ellPts`, `ellPath`, `circPath`, `rectPath`, `roundRectPath`, `polyPath`, `pathLength`, `bez`, `layer(w, h)`, `cam`, `resetT`, `blit(c, layer)` |
 | marks | `wob`, `crayon`, `hatch(c, path, box, opts)`, `grain`, `scribble`, `cross`, `construction`, `squiggleText`, `handText` |
 | finishes | `surface(c, path, box, opts)`, `dotScreen`, `plate()`, `printPlate`, `paper`, `night` |
 | lattices, particles | `hexPath`, `hexCells`, `hexLattice`, `aster`, `dotBurst`, `speedLines`, `loops` |
 | motifs | `seedDot`, `ripples`, `dashedRing`, `dottedArc`, `plant`, `tornEdge`, `section`, `stickyNote`, `thread`, `signOff` |
 | reveals, composition | `selfDraw`, `blot`, `iris`, `mosaic`, `montage`, `badges`, `flash` |
 | sheets | `styleSheet`, `paletteSheet` |
-| runtime | `defineFilm({palette, timeline, score})`, `note`, `noiseBurst`, `pentHz` |
+| runtime | `defineFilm({palette, timeline, score, format})`, `gridSheet(n, cellW)`, `note`, `noiseBurst`, `pentHz`; hooks `window.__frame(i)` (PNG data URL), `window.__grid(n)`, `window.__size`, `window.__ready` |
 
 Signatures worth knowing by heart:
 
@@ -148,17 +172,20 @@ function sceneRoom(c, tau, i) {
 
 ## Rendering
 
-- One frame in a browser: open `<film>.html?frame=37` (with the player) or
-  `<film>.html?frame=37&bare=1` (canvas only, 1080x1080 CSS px).
-- Spot check without a window: `node render.mjs <film>.html --only 0,37,74`
-  writes `out/<film>-frames/NNNN.png` and stops.
+- One frame in a browser: open `<film>.html?frame=37` (with the player),
+  `<film>.html?grid=24` (a sheet of 24 evenly spaced frames), or add
+  `&bare=1` for the canvas alone.
+- First look without a window: `node render.mjs <film>.html --grid 24` writes
+  `out/<film>-grid.jpg` in a few seconds. Look at it before anything else.
+- Spot check: `node render.mjs <film>.html --only 0,37,74` writes
+  `out/<film>-frames/NNNN.png` and stops.
 - Full render: `node render.mjs <film>.html`. One headless Chrome through
   `puppeteer-core`, every drawn frame screenshotted, then ffmpeg packs the
   mp4 on twos and builds `out/<film>-contact.jpg` with two tiles per second.
   A frame that throws is reported with its number and time, and no mp4 is
   built.
-- Do not spawn one Chrome per frame with `--screenshot`; it hangs on the
-  second frame.
+- Frames come from `canvas.toDataURL`, not from screenshots. Do not spawn one
+  Chrome per frame with `--screenshot`; it hangs on the second frame.
 - Manual packing of PNGs exported from the page:
   `ffmpeg -framerate 12 -i %04d.png -r 24 -pix_fmt yuv420p -crf 18 out.mp4`.
 - Remotion, if the project already uses it: call `drawFrame` from a component
@@ -190,7 +217,9 @@ function sceneRoom(c, tau, i) {
 - `handText` and `signOff` depend on the host's fonts (`HAND_FONT` falls
   back to `cursive`); check the render on the machine that produces the
   final file.
-- Headless Chrome needs `--force-device-scale-factor=1` or the screenshot is
-  2160 px on a Retina host; `render.mjs` sets it.
+- A literal `540` in a scene is a bug waiting for the first vertical render;
+  use `CX`, `CY`, `W`, `H`.
+- `drawImage(layer, 0, 0)` draws the layer at output-pixel size; under a
+  scaled format it lands wrong. Use `blit(c, layer)` or pass `W, H`.
 - Loading `core.js` twice, or redefining `W`, `H`, `PAL` in the film, throws
   at load: top-level `const`s are shared across classic scripts.

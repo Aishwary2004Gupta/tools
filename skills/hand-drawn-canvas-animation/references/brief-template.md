@@ -6,7 +6,7 @@ the film's HTML as a comment together with the beat sheet.
 ```
 BRIEF
 Subject: <one sentence, e.g. "the life of a request inside a 4x RTX 3090 rig">
-Format: 1080x1080, drawn 12 fps, output 24 fps, <N> seconds
+Format: <1:1 | 16:9 | 9:16>, output width <1080 | 1920 | 3840>, drawn 12 fps, output 24 fps, <N> seconds
 Look: ink | riso | screen | pencil | mixed (name the cuts where the look changes)
 Palette: paperInk | risoPop | screenSea | pencilMinimal | blueprintNight
          | makePalette({...}, base) | derivePalette(base, {hue, sat, light}) | duotone(a, b)

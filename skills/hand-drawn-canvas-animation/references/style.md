@@ -57,7 +57,9 @@ These are not suggestions. If a frame breaks one, fix the frame.
     palettes on a cut and derive variants, but never invents a hex inside a
     scene.
 12. **One thing per shot.** The silhouette reads at 240 px, contact-sheet
-    size. A montage card reads at 120 px, badge size.
+    size. A montage card reads at 120 px, badge size. If a scene does not read
+    on the grid sheet in a second and a half, redo it, do not decorate it; one
+    large object beats twenty small ones.
 13. **An anchor survives the cuts.** The seed dot, the boat, the thread, the
     fly: one element stays in place or in role while everything around it
     changes. Decide what it is before writing scenes.

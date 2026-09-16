@@ -17,6 +17,7 @@
 // Cadence: drawn at 12 fps ("on twos"), packed to 24 fps video.
 // Textures are seeded, so nothing boils unless you ask for it.
 // ============================================================
+// Built on core.js. Designed for 1:1 with literal centres; render it square.
 // Built on core.js. Colours below are literal because this film predates the palette system;
 // the palette only sets the finish and the player defaults.
 usePalette('paperInk');
@@ -93,7 +94,7 @@ function blotIn(c,t,drawInside){const p=sm(2.4,3.2,t,easeOut),R=lerp(0,1000,p);i
   drawInside(octx);
   const r=rng(77);const pts=[];for(let i=0;i<72;i++){const a=i/72*TAU;pts.push([540+20+Math.cos(a)*R*(1+(r()-.5)*.16),380+Math.sin(a)*R*(1+(r()-.5)*.16)])}
   c.setTransform(1,0,0,1,0,0);const path=new Path2D();pts.forEach((q,i)=>i?path.lineTo(q[0],q[1]):path.moveTo(q[0],q[1]));path.closePath();
-  c.save();c.clip(path);c.drawImage(off,0,0);c.restore();
+  c.save();c.clip(path);c.drawImage(off,0,0,W,H);c.restore();
   // bristly fringe
   c.save();c.strokeStyle='#0b0d1f';c.lineWidth=1.6;c.globalAlpha=.9;const rr=rng(78);
   for(let i=0;i<420;i++){const a=rr()*TAU,rad=R*(1+(rr()-.5)*.14),L=10+rr()*38;const x=560+Math.cos(a)*rad,y=380+Math.sin(a)*rad;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*L,y+Math.sin(a)*L);c.stroke()}
