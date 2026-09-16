@@ -25,7 +25,7 @@ Video with sound, generated at home.
 the synchronized audio in one pass, so voice, effects and music come out of the
 same generation as the frames. Open weights.
 
-Eleven ComfyUI workflows in two sets. One set runs on any single 24 GB card. The
+Thirteen ComfyUI workflows in two sets. One set runs on any single 24 GB card. The
 other puts every card in a multi-GPU box to work and hits **3.12x on four
 cards**, taking a 15-second shot from 19 minutes of sampling down to 6:41.
 
@@ -41,10 +41,13 @@ cd minimax-h3 && ./install/setup.sh check
 Agent skills that stand on their own.
 
 **[hand-drawn-canvas-animation](skills/hand-drawn-canvas-animation)** makes short
-films that look hand-drawn, with every frame drawn by JavaScript on a plain
-Canvas 2D. One HTML file, no images and no video model. It ships a tested
-starter, a worked 9.5-second example, a renderer that turns the file into an mp4
-and a contact sheet, and the rules an agent needs to keep the look consistent.
+films that look hand-drawn or hand-printed, with every frame drawn by
+JavaScript on a plain Canvas 2D. One HTML file on a shared core, no images and
+no video model. Four looks from one palette system: ink on warm paper, riso
+halftone prints, flat screen prints and graphite minimalism, each re-colourable
+in one line. It ships the core, a template, two worked films, a renderer that
+turns a file into an mp4 and a contact sheet, and the rules an agent needs to
+keep a look consistent.
 
 ```bash
 cp -r skills/hand-drawn-canvas-animation ~/.agents/skills/

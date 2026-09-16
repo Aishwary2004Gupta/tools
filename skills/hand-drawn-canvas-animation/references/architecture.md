@@ -1,43 +1,139 @@
-# Architecture, puppets, rendering, pitfalls
+# Architecture, API, puppets, rendering, pitfalls
 
-## File layout and invariants
+## Files of a film
 
-Section order, top to bottom: `CONFIG` (size, fps, palette) → `KIT`
-(primitives, never edited per film) → `PUPPET` (your characters and objects)
-→ `SCENES` → `TIMELINE` → `SCORE` → `RUNTIME` (player, export hooks, never
-edited).
+```
+my-film/
+  core.js            copied from assets/, never edited per film
+  my-film.html       copied from assets/film-template.html, edited
+  render.mjs         copied from scripts/
+  package.json       copied from scripts/, then npm i
+  out/               my-film-frames/, my-film.mp4, my-film-contact.jpg
+```
 
-Invariants:
+`my-film.html` has five sections in this order: brief and beat sheet (a
+comment), palette, puppets, scenes, score, and the `defineFilm` call.
 
-- `drawFrame(i)` is a **pure function of the drawn-frame index**. No state
-  survives between frames, no `requestAnimationFrame` time, no `Date`. Same
-  `i` gives the same pixels on any machine. This is what makes scrubbing,
-  contact sheets, parallel rendering and re-renders possible.
-- A scene is `sceneX(c, tau, i)`: `c` is a 2D context (main canvas or an
-  offscreen layer), `tau` is seconds since the scene started, `i` is the
-  global drawn-frame index (for twitches and flicker).
-- `TIMELINE` is an array of `{name, dur, fn}`. Scene boundaries are the
-  cuts. Total duration and frame count are derived from it.
+## Invariants
+
+- `drawFrame(i)` is a pure function of the drawn-frame index. Scenes keep no
+  state between frames and never read the clock. Same `i`, same pixels, on
+  any machine.
+- A scene is `sceneX(c, tau, i)`: `c` a 2D context (main canvas or a layer),
+  `tau` seconds since the scene started, `i` the global drawn frame.
+- The timeline is `[{name, dur, fn}]`. Boundaries are the cuts. Duration and
+  frame count derive from it.
 - World units are pixels at zoom 1. `cam(c, x, y, zoom, rot)` puts world
-  point `(x, y)` at the frame centre. Puppets are drawn in local coordinates
-  with the origin at the body centre and "forward" pointing up (negative y);
-  place them with `translate → rotate → scale`.
-- Compositing uses offscreen layers: render A into `L1`, B into `L2`,
-  compose on the main context (`blot`, `mosaic`, flicker). Layers are
-  created once with `layer()`.
-- Hooks for the renderer: `window.__drawFrame(i)`, `window.__NDRAW`, and
-  the query string `?frame=N&bare=1` (draw one frame, hide the UI, canvas at
-  exactly 1080x1080 CSS px).
+  point `(x, y)` at the frame centre. Puppets draw in local coordinates,
+  origin at the body centre, forward = up (negative y); place them with
+  `translate`, `rotate`, `scale`.
+- Compositing uses layers: render A into `L1`, B into `L2`, compose on the
+  main context (`blot`, `iris`, `mosaic`, `flicker`). Make layers once with
+  `layer()` at file scope.
+- `PAL` is global and mutable through `usePalette`. A scene that needs a
+  different look calls `usePalette` at its top; the next scene sets its own.
+- Hooks for the renderer: `window.__drawFrame(i)`, `window.__NDRAW`, and the
+  query string `?frame=N&bare=1`.
 
-Performance budget (offline render, one headless Chrome):
+## API index (assets/core.js)
 
-| Thing | Budget |
+| section | names |
 |---|---|
-| One drawn frame | 50 to 300 ms |
-| Hatch layer | one `beginPath` + one `stroke` for all strokes, up to ~20k segments |
-| Grain | up to 8k rects per layer |
-| Mosaic cell | ≥ 12 px, one `getImageData` per frame |
-| Static heavy layer (a room, a textured ground) | draw once per scene into a cached layer, then `drawImage` |
+| config | `W`, `H`, `FPS_DRAW`, `FPS_OUT`, `TAU`, `HAND_FONT` |
+| colour | `lerp`, `clamp`, `parseColor`, `toHex`, `mix`, `tint`, `shade`, `alpha`, `hsl`, `withHsl`, `rotateHue`, `saturate`, `lighten`, `ramp`, `harmony` |
+| palettes | `PALETTES`, `PAL`, `usePalette`, `makePalette`, `derivePalette`, `duotone` |
+| random, easing | `rng(seed)`, `easeIO`, `easeOut`, `easeIn`, `sm(a, b, t, ease)`, `flicker(i, period)`, `pulse(i, every, hold)` |
+| geometry | `ellPts`, `ellPath`, `circPath`, `rectPath`, `roundRectPath`, `polyPath`, `pathLength`, `bez`, `layer(w, h)`, `cam`, `resetT` |
+| marks | `wob`, `crayon`, `hatch(c, path, box, opts)`, `grain`, `scribble`, `cross`, `construction`, `squiggleText`, `handText` |
+| finishes | `surface(c, path, box, opts)`, `dotScreen`, `plate()`, `printPlate`, `paper`, `night` |
+| lattices, particles | `hexPath`, `hexCells`, `hexLattice`, `aster`, `dotBurst`, `speedLines`, `loops` |
+| motifs | `seedDot`, `ripples`, `dashedRing`, `dottedArc`, `plant`, `tornEdge`, `section`, `stickyNote`, `thread`, `signOff` |
+| reveals, composition | `selfDraw`, `blot`, `iris`, `mosaic`, `montage`, `badges`, `flash` |
+| sheets | `styleSheet`, `paletteSheet` |
+| runtime | `defineFilm({palette, timeline, score})`, `note`, `noiseBurst`, `pentHz` |
+
+Signatures worth knowing by heart:
+
+```js
+surface(c, path, box, { finish, color, seed, density, angle, gap, len, alpha, width, grain, cell })
+hatch(c, path, box, { angle, gap, len, jitter, color, alpha, width, seed })
+dotScreen(c, path, box, { cell, color, density /* number or (x,y)=>0..1 */, angle, jitter, seed, alpha, square })
+printPlate(c, plateCanvas, { cell, ink, angle, jitter, seed, gain, maxCov, blend, al })
+scribble(c, path, cx, cy, { colors, amp, alpha, width, seed })
+construction(c, cx, cy, R, seed, color, alpha)
+blot(c, srcLayer, cx, cy, R, seed, fringeColor)     // screen coords
+iris(c, cx, cy, r, fn, outsideColor)                // fn(c) draws inside the circle
+montage(c, cards, tau, per, i)                      // cards: [(c, tau, i) => void]
+badges(c, cards, { cx, cy, r0, gap, size, ring, seed, progress, count, scale })
+signOff(c, a, b, { x, y, size, ink, ink2, progressA, progressB })
+```
+
+`box` is `[x, y, w, h]` bounding the path in the same coordinates as the
+path. It bounds the hatch or dot grid; a box that is too small leaves bare
+patches, one too large only costs time.
+
+## Building a puppet
+
+1. **Parts.** 3 to 8 parts as ellipses, circles, rounded rects or polygons in
+   local coordinates, about 200 px tall at scale 1. Keep the arguments in an
+   `ARGS` object and build a `Path2D` per part from them; `ellPts(...ARGS.x)`
+   reuses them for the wobbly outline.
+2. **Pose.** 3 to 6 numbers: `walk`, `twitch`, `wing`, `flap`, `tuck`,
+   `tilt`. Nothing else.
+3. **Order.** Limbs behind, translucent parts, body parts back to front,
+   face, accents on top.
+4. **Per part.** `fill(path)` → `surface(c, path, box, {seed})` → `wob`
+   outline. Markings are thick curved strokes clipped to the part. That is
+   the whole ink pipeline, and it re-textures itself when the palette changes
+   finish.
+5. **Blueprint.** Chalk `wob` outlines only, weight 2.4 to 2.8, lattices in
+   chalk at alpha 0.75.
+6. **Details.** Hex-lattice eyes shaded toward a highlight (`mix(shade(blush), tint(blush), l)`),
+   one `scribble` on the largest part, `construction` around the puppet in
+   establishing shots.
+7. **Motion.** Limbs from `sin(phase)`; blur by drawing a part three times
+   at ±angle with alpha; never tween the texture.
+8. **Test.** Put the puppet on the style sheet at scales 0.6, 1 and 1.8.
+   Render frame 0. It must read at 240 px.
+
+Non-creature subjects use the same recipe: parts are `roundRectPath`s and
+circles, eyes become LEDs (small hex discs), hatch runs along panel
+directions, markings become vents or traces, and `construction` lines make
+the object read as a technical drawing.
+
+## Riso plates
+
+```js
+function card(c) {
+  paper(c);
+  const inks = PAL.inks.slice(0, 3), angles = [.26, 1.31, 0];
+  inks.forEach((ink, k) => {
+    const P = plate(), g = P.getContext('2d');   // white plate, draw coverage in black
+    g.fillStyle = '#000';
+    if (k === 0) { /* blue shapes */ }
+    if (k === 1) { /* pink shapes */ }
+    if (k === 2) { /* yellow shapes */ }
+    printPlate(c, P, { cell: 7, ink, angle: angles[k], seed: 30 + k });
+  });
+}
+```
+
+Grey on a plate is partial coverage; a canvas gradient on a plate becomes a
+dot-size ramp; white on a plate is a knockout. Print order is the palette's
+`inks` order; the darkest ink last. Overlaps multiply, so blue over yellow is
+green and pink over blue is purple, which is how the reference gets six
+colours from three inks.
+
+## Performance budget (offline render)
+
+| thing | budget |
+|---|---|
+| one drawn frame | 50 to 300 ms |
+| hatch or dot screen layer | one `beginPath` + one `stroke`/`fill`, up to ~50k segments |
+| `printPlate` | one `getImageData` on a 160 px coverage map plus ~25k arcs per plate; three plates per card is fine |
+| grain | ≤ 8k rects per layer |
+| mosaic cell | ≥ 12 px |
+| static heavy layer | draw once per scene into a cached layer, then `drawImage` |
 
 Cache pattern:
 
@@ -45,73 +141,56 @@ Cache pattern:
 const cache = {};
 function sceneRoom(c, tau, i) {
   if (!cache.room) { cache.room = layer(); drawRoomStatic(cache.room.getContext('2d')); }
-  c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(cache.room, 0, 0);
+  resetT(c); c.drawImage(cache.room, 0, 0);
   // moving things on top
 }
 ```
 
-## Building a puppet
-
-A puppet is a character or an object: a fly, a GPU card, a token, a server.
-Same recipe every time.
-
-1. **Part list.** 3 to 8 parts as ellipses, circles or rounded rects in
-   local coordinates, total height about 200 px at scale 1. Keep the
-   arguments (`[cx, cy, rx, ry]`) in an `ARGS` object and build a
-   `Path2D` per part from them; `ellPts(...ARGS.part)` reuses them for the
-   wobbly outline.
-2. **Pose object.** 3 to 6 numbers, no more: `walk` (0..1 phase), `twitch`
-   (0/1), `wing` (angle), `flap` (0..1 blur), `tuck` (0..1), `tilt`. The
-   whole reference fly is animated with five.
-3. **Draw order.** Limbs behind → translucent parts (wings) → body parts
-   back to front → face → accents on top.
-4. **Ink pipeline per part.** `fill(path)` → `hatch` with the angle along
-   the part's long axis → `grain` (100 to 200 dots per part) → `wob`
-   outline. Stripes and markings are thick curved strokes clipped to the
-   part, not separate shapes.
-5. **Blueprint pipeline per part.** Chalk `wob` outline only, weight 2.4 to
-   2.8, no fills. Lattices (eyes, cells) stroked in chalk at alpha 0.75.
-6. **Details that sell it.** Hex-lattice eyes (or LEDs, or ports) shaded
-   toward a highlight; one `scribble` on the largest part; a `construction`
-   overlay around the whole puppet in establishing shots.
-7. **Motion.** Limbs from `sin(phase)`; blur by drawing a part 3 times at
-   ±angle with alpha; never tween the hatching.
-8. **Test.** Add the puppet to the style sheet at 3 scales (0.6, 1, 1.8) and
-   render frame 0. It must read at 240 px.
-
-Non-creature subjects use the same recipe: parts are `roundRect` paths
-and circles, "eyes" become LEDs (small hex discs), hatch runs along panel
-directions, stripes become vents or traces, and `construction` lines make
-the object read as a technical drawing.
-
 ## Rendering
 
-- One frame in a browser: open `<film>.html?frame=37` (with UI) or
+- One frame in a browser: open `<film>.html?frame=37` (with the player) or
   `<film>.html?frame=37&bare=1` (canvas only, 1080x1080 CSS px).
-- Spot check without a browser window: `node render.mjs <film>.html --only 0,37,74`
+- Spot check without a window: `node render.mjs <film>.html --only 0,37,74`
   writes `out/<film>-frames/NNNN.png` and stops.
 - Full render: `node render.mjs <film>.html`. One headless Chrome through
-  `puppeteer-core`, every drawn frame screenshotted, then ffmpeg packs the mp4
-  on twos and builds `out/<film>-contact.jpg` with two tiles per second.
-  Page errors are printed and the exit code is non-zero.
-- Do not spawn one Chrome per frame with `--screenshot`. It hangs on the
+  `puppeteer-core`, every drawn frame screenshotted, then ffmpeg packs the
+  mp4 on twos and builds `out/<film>-contact.jpg` with two tiles per second.
+  A frame that throws is reported with its number and time, and no mp4 is
+  built.
+- Do not spawn one Chrome per frame with `--screenshot`; it hangs on the
   second frame.
-- Manual packing, if you exported PNGs from the page yourself:
+- Manual packing of PNGs exported from the page:
   `ffmpeg -framerate 12 -i %04d.png -r 24 -pix_fmt yuv420p -crf 18 out.mp4`.
-- Remotion, if the project already uses it: call the same `drawFrame` from a
-  component on a canvas ref with `useCurrentFrame()`; set `fps: 24` and draw
+- Remotion, if the project already uses it: call `drawFrame` from a component
+  on a canvas ref with `useCurrentFrame()`; `fps: 24` and
   `drawFrame(Math.floor(frame / 2))`.
 
 ## Pitfalls
 
 - `Math.random` anywhere → boiling textures. Use `rng(seed)`.
-- A `stroke()` per hatch segment → seconds per frame. One `beginPath`, one `stroke` per layer.
-- Forgetting `c.setTransform(1,0,0,1,0,0)` before full-frame fills → the background lands in world space.
-- `clip` without `save/restore` → every later draw is clipped.
-- `selfDraw` needs the real perimeter length for the dash pattern; `pathLength` computes it.
-- `getImageData` fails on a canvas that ever drew a cross-origin image. This style uses no images, so keep it that way.
-- Ghost copies with alpha 0.34 each stack to near-opaque; divide alpha by the number of ghosts.
-- The in-page PNG export needs a user click (File System Access API); automated renders go through `render.mjs`.
-- `blot` and `mosaic` work in screen coordinates; call them after `setTransform` identity, with screen-space centres.
-- A mosaic of a navy blueprint frame samples mostly navy; mosaic the colour frame.
-- Headless Chrome must run with `--force-device-scale-factor=1` or the screenshot is 2160 px on a Retina host.
+- A `stroke()` per hatch segment → seconds per frame. One path per layer.
+- Forgetting `resetT(c)` (or `paper`/`night`, which reset) before a
+  full-frame fill → the background lands in world space.
+- `clip` without `save`/`restore` → every later draw is clipped.
+- `selfDraw` needs the real perimeter for the dash pattern; `pathLength`
+  computes it.
+- `getImageData` fails on a canvas that ever drew a cross-origin image. This
+  style uses no images.
+- Ghost copies at alpha 0.34 each stack to near-opaque; divide by the count.
+- The in-page PNG export needs a click (File System Access API); automated
+  renders go through `render.mjs`.
+- `blot`, `iris`, `mosaic`, `badges` work in screen coordinates and reset the
+  transform themselves; pass screen-space centres.
+- A mosaic of a navy blueprint frame samples mostly navy; mosaic the colour
+  frame.
+- Plates without knockouts tint the subject with every sky; paint the
+  subject white on the plates that should not touch it.
+- `printPlate` with `maxCov` 1 and three plates gives a muddy full-bleed;
+  keep the default 0.78 and leave paper in every card.
+- `handText` and `signOff` depend on the host's fonts (`HAND_FONT` falls
+  back to `cursive`); check the render on the machine that produces the
+  final file.
+- Headless Chrome needs `--force-device-scale-factor=1` or the screenshot is
+  2160 px on a Retina host; `render.mjs` sets it.
+- Loading `core.js` twice, or redefining `W`, `H`, `PAL` in the film, throws
+  at load: top-level `const`s are shared across classic scripts.

@@ -1,28 +1,15 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>fly-style: hand-drawn canvas kit</title>
+<title>fly-style: the life of a fruit fly</title>
 <style>
   body{margin:0;background:#111;color:#ccc;font:13px/1.4 ui-monospace,Menlo,monospace;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px}
   canvas#c{width:min(92vw,720px);height:auto;background:#000;box-shadow:0 0 0 1px #333}
   .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
   button{background:#222;color:#ddd;border:1px solid #444;padding:4px 10px;cursor:pointer;font:inherit}
   input[type=range]{width:320px}
-  #info{min-width:260px}
-  label{display:flex;gap:4px;align-items:center}
 </style>
 <canvas id="c" width="1080" height="1080"></canvas>
-<div class="bar">
-  <button id="play">play</button>
-  <button id="snd">sound: off</button>
-  <input id="scrub" type="range" min="0" max="0" value="0">
-  <span id="info"></span>
-</div>
-<div class="bar">
-  <label><input id="boil" type="checkbox"> boil on 3s</label>
-  <button id="exp">export PNG frames</button>
-  <button id="wav">export score.wav</button>
-  <span id="msg"></span>
-</div>
+<script src="../assets/core.js"></script>
 <script>
 // ============================================================
 // fly-style: a Canvas 2D "hand-drawn animation" kit.
@@ -30,66 +17,11 @@
 // Cadence: drawn at 12 fps ("on twos"), packed to 24 fps video.
 // Textures are seeded, so nothing boils unless you ask for it.
 // ============================================================
-const W=1080,H=1080,FPS_DRAW=12,FPS_OUT=24,DUR=9.5;
-const NDRAW=Math.round(DUR*FPS_DRAW);
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-const off=document.createElement('canvas');off.width=W;off.height=H;const octx=off.getContext('2d');
-const off2=document.createElement('canvas');off2.width=W;off2.height=H;const o2ctx=off2.getContext('2d');
-let BOIL=false;
-
-// ---------- math ----------
-function rng(seed){let a=(seed*1000003)>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const lerp=(a,b,t)=>a+(b-a)*t,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const easeIO=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,easeOut=t=>1-Math.pow(1-t,3);
-const sm=(a,b,t,e=easeIO)=>e(clamp((t-a)/(b-a),0,1));
-const TAU=Math.PI*2;
-function ellPts(cx,cy,rx,ry,rot=0,n=44){const p=[];for(let i=0;i<n;i++){const a=i/n*TAU,x=rx*Math.cos(a),y=ry*Math.sin(a);p.push([cx+x*Math.cos(rot)-y*Math.sin(rot),cy+x*Math.sin(rot)+y*Math.cos(rot)])}return p}
-function ellPath(cx,cy,rx,ry,rot=0){const p=new Path2D();p.ellipse(cx,cy,rx,ry,rot,0,TAU);return p}
-function circPath(cx,cy,r){return ellPath(cx,cy,r,r)}
-function rectPath(x,y,w,h){const p=new Path2D();p.rect(x,y,w,h);return p}
-
-// ---------- style kit ----------
-// wobbly stroke: polyline with seeded jitter = "drawn by hand"
-function wob(c,pts,amp,seed,close=false){const r=rng(seed);c.beginPath();pts.forEach((p,i)=>{const x=p[0]+(r()-.5)*amp,y=p[1]+(r()-.5)*amp;i?c.lineTo(x,y):c.moveTo(x,y)});if(close)c.closePath();c.stroke()}
-// hatch: short parallel strokes clipped to a path. box = [x,y,w,h] in the same coords as path
-function hatch(c,path,o){const {angle=.9,gap=7,len=14,jitter=6,color='#000',alpha=.35,width=1.2,seed=1,box}=o;const r=rng(seed);
-  c.save();c.clip(path);c.strokeStyle=color;c.globalAlpha=alpha;c.lineWidth=width;c.lineCap='round';
-  const [bx,by,bw,bh]=box,cx=bx+bw/2,cy=by+bh/2,R=Math.hypot(bw,bh)/2,ca=Math.cos(angle),sa=Math.sin(angle);
-  c.beginPath();
-  for(let v=-R;v<=R;v+=gap){for(let u=-R;u<=R;u+=len*1.7){const uu=u+(r()-.5)*jitter*2,L=len*(.6+r()*.8);
-    const x0=cx+ca*uu-sa*v+(r()-.5)*jitter*.6,y0=cy+sa*uu+ca*v+(r()-.5)*jitter*.6;c.moveTo(x0,y0);c.lineTo(x0+ca*L,y0+sa*L)}}
-  c.stroke();c.restore()}
-// grain: speckle dots clipped to a path
-function grain(c,path,box,n,color,alpha,seed,size=1.8){const r=rng(seed);c.save();c.clip(path);c.fillStyle=color;c.globalAlpha=alpha;
-  for(let i=0;i<n;i++){c.fillRect(box[0]+r()*box[2],box[1]+r()*box[3],size*(.4+r()),size*(.4+r()))}c.restore()}
-// scribble: misregistered colour copies of an outline (the "riso print" look)
-function scribble(c,path,cx,cy,o={}){const {colors=['#ff2bd6','#28f0e0','#ffe22b','#5cff5c'],amp=5,alpha=.55,width=1.1,seed=3}=o;const r=rng(seed);
-  c.save();c.globalAlpha=alpha;c.lineWidth=width;
-  for(const col of colors){c.strokeStyle=col;c.save();c.translate(cx+(r()-.5)*amp*2,cy+(r()-.5)*amp*2);c.rotate((r()-.5)*.08);c.scale(1+(r()-.5)*.08,1+(r()-.5)*.08);c.translate(-cx,-cy);c.stroke(path);c.restore()}
-  c.restore()}
-function cross(c,x,y,s){c.beginPath();c.moveTo(x-s,y);c.lineTo(x+s,y);c.moveTo(x,y-s);c.lineTo(x,y+s);c.stroke()}
-// construction: thin blueprint guide lines with ticks, a circle and crosses
-function construction(c,cx,cy,R,seed,color='rgba(70,100,255,.6)',alpha=1){const r=rng(seed);c.save();c.globalAlpha=alpha;c.strokeStyle=color;c.lineWidth=.9;
-  for(let i=0;i<3;i++){const a=r()*Math.PI,L=R*(1.3+r()*1.2);c.beginPath();c.moveTo(cx-Math.cos(a)*L,cy-Math.sin(a)*L);c.lineTo(cx+Math.cos(a)*L,cy+Math.sin(a)*L);c.stroke();
-    for(let k=-3;k<=3;k++){const u=k*L/4,x=cx+Math.cos(a)*u,y=cy+Math.sin(a)*u;c.beginPath();c.moveTo(x-Math.sin(a)*5,y+Math.cos(a)*5);c.lineTo(x+Math.sin(a)*5,y-Math.cos(a)*5);c.stroke()}}
-  c.beginPath();c.arc(cx,cy,R*1.12,0,TAU);c.stroke();
-  for(let i=0;i<5;i++)cross(c,cx+(r()-.5)*R*3,cy+(r()-.5)*R*3,6);
-  c.restore()}
-// hex lattice helpers (pointy-top)
-function hexPath(x,y,s){const p=new Path2D();for(let i=0;i<6;i++){const a=Math.PI/3*i+Math.PI/6;i?p.lineTo(x+s*Math.cos(a),y+s*Math.sin(a)):p.moveTo(x+s*Math.cos(a),y+s*Math.sin(a))}p.closePath();return p}
-function hexCells(box,s,fn){const w=Math.sqrt(3)*s,h=1.5*s;const [bx,by,bw,bh]=box;let row=0;for(let y=by-s;y<by+bh+s;y+=h,row++){const o=(row%2)?w/2:0;for(let x=bx-w+o;x<bx+bw+w;x+=w)fn(x,y)}}
-function hexLattice(c,box,s,color,alpha,width=.8){c.save();c.strokeStyle=color;c.globalAlpha=alpha;c.lineWidth=width;hexCells(box,s,(x,y)=>c.stroke(hexPath(x,y,s)));c.restore()}
-// aster: a nucleus with radiating rays
-function aster(c,x,y,r,n,color,seed,g=1){const rr=rng(seed);c.save();c.strokeStyle=color;c.lineWidth=1.4;c.globalAlpha=.9;
-  for(let i=0;i<n;i++){const a=i/n*TAU+(rr()-.5)*.3,r0=r*1.6,r1=r*(2.6+rr()*1.6)*g;c.beginPath();c.moveTo(x+Math.cos(a)*r0,y+Math.sin(a)*r0);c.lineTo(x+Math.cos(a)*r1,y+Math.sin(a)*r1);c.stroke()}
-  c.fillStyle='#0b0d1f';c.beginPath();c.arc(x,y,r,0,TAU);c.fill();c.strokeStyle='#e6ebff';c.lineWidth=1.6;c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(x+r*.2,y-r*.2,r*.35,0,TAU);c.fill();c.restore()}
-// speed lines behind a moving thing. dir = heading angle (radians)
-function speedLines(c,x,y,dir,seed,n=7,alpha=.6,color='#1e1630'){const r=rng(seed);c.save();c.strokeStyle=color;c.globalAlpha=alpha;c.lineCap='round';
-  for(let i=0;i<n;i++){const side=(r()-.5)*70,back=30+r()*40,L=60+r()*120;const px=-Math.sin(dir),py=Math.cos(dir);const x0=x-Math.cos(dir)*back+px*side,y0=y-Math.sin(dir)*back+py*side;
-    c.lineWidth=.8+r()*1.8;c.beginPath();c.moveTo(x0,y0);c.lineTo(x0-Math.cos(dir)*L,y0-Math.sin(dir)*L);c.stroke()}c.restore()}
-// rainbow loops trailing behind (the coloured "wake" seen around the flying fly)
-function loops(c,x,y,dir,seed,alpha=.6){const r=rng(seed);const cols=['#ff2bd6','#28f0e0','#ffe22b','#5cff5c','#7b6bff'];c.save();c.translate(x,y);c.rotate(dir);c.globalAlpha=alpha;c.lineWidth=1.2;
-  cols.forEach((col,k)=>{c.strokeStyle=col;c.beginPath();const A=14+r()*16,w=.12+r()*.1,ph=r()*TAU;for(let u=0;u<=220;u+=4){const yy=Math.sin(u*w+ph)*A+(k-2)*6,xx=-u-Math.cos(u*w*1.7+ph)*8;u?c.lineTo(xx,yy):c.moveTo(xx,yy)}c.stroke()});c.restore()}
+// Built on core.js. Colours below are literal because this film predates the palette system;
+// the palette only sets the finish and the player defaults.
+usePalette('paperInk');
+const off=layer(),octx=off.getContext('2d'),off2=layer(),o2ctx=off2.getContext('2d');
+const BOIL=false;   // true = re-seed outlines every 3 drawn frames (deliberate boil)
 
 // ---------- the fly (local coords, heading up = -y) ----------
 const FLY={head:ellPath(0,-40,20,18),eyeL:ellPath(-19,-44,13,15,-.3),eyeR:ellPath(19,-44,13,15,.3),thorax:ellPath(0,0,26,30),abd:ellPath(0,54,27,46)};
@@ -118,7 +50,7 @@ function drawFly(c,mode,pose,seed){const r=rng(seed);const ink=mode==='ink';cons
   for(const [k,col,box] of parts){const p=FLY[k];
     if(ink){c.fillStyle=col;c.globalAlpha=1;c.fill(p);
       if(k==='abd'){c.save();c.clip(p);c.strokeStyle='#3b2412';c.lineWidth=7;c.globalAlpha=.9;for(let i=0;i<5;i++){const y=26+i*16;c.beginPath();c.moveTo(-30,y-3);c.quadraticCurveTo(0,y+6,30,y-3);c.stroke()}c.restore()}
-      hatch(c,p,{angle:1.2,gap:4.5,len:9,jitter:3,color:'#3a2214',alpha:.35,width:1,seed:seed+40,box});
+      hatch(c,p,box,{angle:1.2,gap:4.5,len:9,jitter:3,color:'#3a2214',alpha:.35,width:1,seed:seed+40});
       grain(c,p,box,160,'#2b1608',.35,seed+50,1.4);}
     c.strokeStyle=line;c.lineWidth=lw;c.globalAlpha=1;wob(c,ellPts(...pathArgs(k)),1.8,seed+60+k.length,true)}
   compoundEye(c,mode,FLY.eyeL,-1,seed);compoundEye(c,mode,FLY.eyeR,1,seed);
@@ -129,8 +61,6 @@ function drawFly(c,mode,pose,seed){const r=rng(seed);const ink=mode==='ink';cons
   c.restore()}
 function pathArgs(k){return{head:[0,-40,20,18],thorax:[0,0,26,30],abd:[0,54,27,46]}[k]}
 
-// ---------- camera ----------
-function cam(c,x,y,zoom,rot=0){c.setTransform(1,0,0,1,0,0);c.translate(W/2,H/2);c.scale(zoom,zoom);c.rotate(rot);c.translate(-x,-y)}
 
 // ---------- scene 0: fly on a peach ----------
 function scenePeach(c,t,mode,seed=1){const ink=mode==='ink';
@@ -141,9 +71,9 @@ function scenePeach(c,t,mode,seed=1){const ink=mode==='ink';
   const peach=circPath(560,980,700),pbox=[-140,280,1400,1400];
   if(ink){c.fillStyle='#e79256';c.fill(peach);
     c.save();c.clip(peach);
-    hatch(c,circPath(300,560,420),{angle:.8,gap:6,len:16,jitter:6,color:'#fff1d6',alpha:.6,width:1.4,seed:seed+2,box:[-120,140,840,840]});
-    hatch(c,circPath(820,1150,620),{angle:-.6,gap:5,len:18,jitter:5,color:'#c8473f',alpha:.38,width:1.2,seed:seed+3,box:[200,530,1240,1240]});
-    hatch(c,circPath(860,1200,480),{angle:.9,gap:6,len:20,jitter:5,color:'#8e2a30',alpha:.35,width:1.1,seed:seed+4,box:[380,720,960,960]});
+    hatch(c,circPath(300,560,420),[-120,140,840,840],{angle:.8,gap:6,len:16,jitter:6,color:'#fff1d6',alpha:.6,width:1.4,seed:seed+2});
+    hatch(c,circPath(820,1150,620),[200,530,1240,1240],{angle:-.6,gap:5,len:18,jitter:5,color:'#c8473f',alpha:.38,width:1.2,seed:seed+3});
+    hatch(c,circPath(860,1200,480),[380,720,960,960],{angle:.9,gap:6,len:20,jitter:5,color:'#8e2a30',alpha:.35,width:1.1,seed:seed+4});
     c.restore();
     grain(c,peach,pbox,7000,'#7a2f16',.35,seed+6,2);
     c.strokeStyle='#2a1a2e';c.lineWidth=3;c.globalAlpha=.85;wob(c,ellPts(560,980,700,700,0,120),2.5,seed+7,true);c.globalAlpha=1;
@@ -159,7 +89,7 @@ function scenePeach(c,t,mode,seed=1){const ink=mode==='ink';
   if(ink){c.strokeStyle='rgba(70,100,255,.5)';c.lineWidth=.9;cross(c,300,300,8);cross(c,760,640,8)}
 }
 // ink-blot transition: blueprint version of the scene grows out of the fly
-function blot(c,t,drawInside){const p=sm(2.4,3.2,t,easeOut),R=lerp(0,1000,p);if(p<=0)return;
+function blotIn(c,t,drawInside){const p=sm(2.4,3.2,t,easeOut),R=lerp(0,1000,p);if(p<=0)return;
   drawInside(octx);
   const r=rng(77);const pts=[];for(let i=0;i<72;i++){const a=i/72*TAU;pts.push([540+20+Math.cos(a)*R*(1+(r()-.5)*.16),380+Math.sin(a)*R*(1+(r()-.5)*.16)])}
   c.setTransform(1,0,0,1,0,0);const path=new Path2D();pts.forEach((q,i)=>i?path.lineTo(q[0],q[1]):path.moveTo(q[0],q[1]));path.closePath();
@@ -205,7 +135,6 @@ function sceneEgg(c,tau,seed=11){c.setTransform(1,0,0,1,0,0);c.fillStyle='#0b0d1
 }
 
 // ---------- scene 2: flight over the kitchen floor ----------
-function bez(p0,p1,p2,p3,t){const u=1-t;return[u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]]}
 const PATH=[[300,2000],[1300,1500],[500,700],[1900,450]];
 function drawRoom(c,seed=21){c.fillStyle='#eef0e8';c.fillRect(-200,-200,2800,2800);
   for(let i=-1;i<22;i++)for(let j=-1;j<22;j++){if((i+j)%2){c.fillStyle='#a9c4c9';c.fillRect(i*120+8,j*120+8,104,104);grain(c,rectPath(i*120+8,j*120+8,104,104),[i*120+8,j*120+8,104,104],14,'#5e8a91',.35,seed+i*31+j,2)}}
@@ -216,7 +145,7 @@ function drawRoom(c,seed=21){c.fillStyle='#eef0e8';c.fillRect(-200,-200,2800,280
   // plate with rings + fruit
   const px=1380,py=650;c.fillStyle='#f4f1e6';c.fill(circPath(px,py,230));c.strokeStyle='#7fb3a8';c.lineWidth=5;c.stroke(circPath(px,py,215));c.strokeStyle='#2a1a2e';c.lineWidth=2.5;wob(c,ellPts(px,py,230,230,0,80),2,seed+5,true);
   c.strokeStyle='rgba(120,140,160,.6)';c.lineWidth=1;for(let k=1;k<6;k++)c.stroke(circPath(px,py,40*k));
-  const orange=circPath(px-60,py-20,85);c.fillStyle='#f0923c';c.fill(orange);hatch(c,orange,{angle:1,gap:5,len:12,jitter:4,color:'#b8501e',alpha:.4,seed:seed+6,box:[px-150,py-110,180,180]});c.strokeStyle='#2a1a2e';c.lineWidth=2.5;wob(c,ellPts(px-60,py-20,85,85),2,seed+7,true);
+  const orange=circPath(px-60,py-20,85);c.fillStyle='#f0923c';c.fill(orange);hatch(c,orange,[px-150,py-110,180,180],{angle:1,gap:5,len:12,jitter:4,color:'#b8501e',alpha:.4,seed:seed+6});c.strokeStyle='#2a1a2e';c.lineWidth=2.5;wob(c,ellPts(px-60,py-20,85,85),2,seed+7,true);
   const gr=rng(seed+8);for(let i=0;i<9;i++){const gx=px+80+(gr()-.5)*90,gy=py+70+(gr()-.5)*70;const g=circPath(gx,gy,22);c.fillStyle='#7b4b9a';c.fill(g);c.strokeStyle='#2a1a2e';c.lineWidth=2;c.stroke(g);c.fillStyle='rgba(255,255,255,.5)';c.fill(circPath(gx-6,gy-7,5))}
 }
 function sceneFlight(c,tau,seed=21){const u=sm(0,2.2,tau,easeIO);const p=bez(...PATH,u),q=bez(...PATH,Math.min(1,u+.01));const dir=Math.atan2(q[1]-p[1],q[0]-p[0]);
@@ -224,7 +153,7 @@ function sceneFlight(c,tau,seed=21){const u=sm(0,2.2,tau,easeIO);const p=bez(...
   cam(c,p[0]+Math.cos(dir)*120,p[1]+Math.sin(dir)*120,1);
   drawRoom(c,seed);
   // shadow
-  c.save();c.translate(p[0]+45,p[1]+70);c.rotate(dir+Math.PI/2);const sh=ellPath(0,0,40,90);hatch(c,sh,{angle:.4,gap:4,len:12,jitter:3,color:'#2a1a2e',alpha:.35,seed:seed+9,box:[-50,-100,100,200]});c.restore();
+  c.save();c.translate(p[0]+45,p[1]+70);c.rotate(dir+Math.PI/2);const sh=ellPath(0,0,40,90);hatch(c,sh,[-50,-100,100,200],{angle:.4,gap:4,len:12,jitter:3,color:'#2a1a2e',alpha:.35,seed:seed+9});c.restore();
   const f=Math.floor(tau*FPS_DRAW);
   speedLines(c,p[0],p[1],dir,seed+f,9,.55);loops(c,p[0],p[1],dir,seed+3,.7);
   c.save();c.translate(p[0],p[1]);c.rotate(dir+Math.PI/2);drawFly(c,'ink',{wing:1.25,flap:1,legs:1,walk:0},seed+(BOIL?f%3:0));c.restore()}
@@ -243,14 +172,7 @@ function sceneEye(c,tau,seed=31){const u=sm(0,.7,tau);
   c.strokeStyle='#e6ebff';c.lineWidth=3;wob(c,ellPts(540,540,505,505,0,120),2,seed+1,true)}
 
 // ---------- timeline ----------
-function drawFrame(i){const t=i/FPS_DRAW;ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;
-  let scene;
-  if(t<3.2){scenePeach(ctx,t,'ink');blot(ctx,t,c=>scenePeach(c,t,'blueprint'));scene='peach'+(t>=2.4?' > blot':'')}
-  else if(t<6.4){sceneEgg(ctx,t-3.2);scene='egg'}
-  else if(t<8.6){sceneFlight(ctx,t-6.4);scene='flight'}
-  else{sceneEye(ctx,t-8.6);scene='compound eye'}
-  ctx.setTransform(1,0,0,1,0,0);return scene}
-
+function scenePeachInk(c,tau,i){scenePeach(c,tau,'ink');blotIn(c,tau,cc=>scenePeach(cc,tau,'blueprint'))}
 // ---------- score (Web Audio; same timeline drives the music) ----------
 function buildScore(ac,t0,dest){const master=ac.createGain();master.gain.value=.6;master.connect(dest||ac.destination);
   const note=(f,t,d,type='triangle',g=.25)=>{const o=ac.createOscillator(),e=ac.createGain();o.type=type;o.frequency.value=f;e.gain.setValueAtTime(0,t0+t);e.gain.linearRampToValueAtTime(g,t0+t+.02);e.gain.exponentialRampToValueAtTime(.0008,t0+t+d);o.connect(e);e.connect(master);o.start(t0+t);o.stop(t0+t+d+.05)};
@@ -263,28 +185,10 @@ function buildScore(ac,t0,dest){const master=ac.createGain();master.gain.value=.
   for(let t=6.4;t<8.6;t+=.5)note(hz(0,0),t,.4,'sine',.12);
   note(hz(-1,0),8.6,1.0,'sine',.25);note(hz(0,2),8.7,.9,'sine',.15)}
 
-// ---------- player / ui ----------
-const scrub=document.getElementById('scrub'),info=document.getElementById('info'),msg=document.getElementById('msg');scrub.max=NDRAW-1;
-let playing=false,start=0,cur=-1,sound=false,ac=null;
-function show(i){if(i===cur)return;cur=i;const sc=drawFrame(i);scrub.value=i;info.textContent=`draw ${String(i).padStart(3,'0')}/${NDRAW}  t=${(i/FPS_DRAW).toFixed(2)}s  ${sc}`}
-function loop(){if(!playing)return;const t=((performance.now()-start)/1000)%DUR;show(Math.floor(t*FPS_DRAW));requestAnimationFrame(loop)}
-document.getElementById('play').onclick=()=>{playing=!playing;document.getElementById('play').textContent=playing?'pause':'play';if(playing){start=performance.now();if(sound){ac=ac||new AudioContext();ac.resume();buildScore(ac,ac.currentTime+.05)}loop()}};
-document.getElementById('snd').onclick=e=>{sound=!sound;e.target.textContent='sound: '+(sound?'on':'off')};
-scrub.oninput=()=>{playing=false;document.getElementById('play').textContent='play';show(+scrub.value)};
-document.getElementById('boil').onchange=e=>{BOIL=e.target.checked;cur=-1;show(+scrub.value)};
-// export: 12 fps PNGs into a folder you pick, then ffmpeg packs them to 24 fps
-document.getElementById('exp').onclick=async()=>{if(!window.showDirectoryPicker){msg.textContent='File System Access API missing: use ?frame=N with a headless browser';return}
-  const dir=await showDirectoryPicker({mode:'readwrite'});playing=false;
-  for(let i=0;i<NDRAW;i++){cur=-1;show(i);const blob=await new Promise(res=>cv.toBlob(res,'image/png'));const fh=await dir.getFileHandle(String(i).padStart(4,'0')+'.png',{create:true});const w=await fh.createWritable();await w.write(blob);await w.close();msg.textContent=`exported ${i+1}/${NDRAW}`}
-  msg.textContent=`done. ffmpeg -framerate ${FPS_DRAW} -i %04d.png -r ${FPS_OUT} -pix_fmt yuv420p -crf 18 out.mp4`};
-document.getElementById('wav').onclick=async()=>{const sr=48000,oac=new OfflineAudioContext(2,Math.ceil(sr*DUR),sr);buildScore(oac,0,oac.destination);const buf=await oac.startRendering();
-  const n=buf.length,ch=2,out=new DataView(new ArrayBuffer(44+n*ch*2));const ws=(o,s)=>{for(let i=0;i<s.length;i++)out.setUint8(o+i,s.charCodeAt(i))};
-  ws(0,'RIFF');out.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');out.setUint32(16,16,true);out.setUint16(20,1,true);out.setUint16(22,ch,true);out.setUint32(24,sr,true);out.setUint32(28,sr*ch*2,true);out.setUint16(32,ch*2,true);out.setUint16(34,16,true);ws(36,'data');out.setUint32(40,n*ch*2,true);
-  const L=buf.getChannelData(0),R=buf.getChannelData(1);let o=44;for(let i=0;i<n;i++){out.setInt16(o,clamp(L[i],-1,1)*32767,true);out.setInt16(o+2,clamp(R[i],-1,1)*32767,true);o+=4}
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'audio/wav'}));a.download='score.wav';a.click();msg.textContent='score.wav: ffmpeg -i out.mp4 -i score.wav -c:v copy -c:a aac -shortest final.mp4'};
-// headless use: ?frame=N draws one frame and stops
-const qs=new URLSearchParams(location.search);
-window.__drawFrame=i=>{cur=-1;show(i)};window.__NDRAW=NDRAW;
-if(qs.has('bare')){document.body.style.cssText='margin:0;padding:0;background:#000';cv.style.cssText='width:1080px;height:1080px;display:block';document.querySelectorAll('.bar').forEach(b=>b.hidden=true)}
-if(qs.has('frame'))show(+qs.get('frame'));else show(0);
+defineFilm({timeline:[
+  {name:'peach', dur:3.2, fn:scenePeachInk},
+  {name:'egg',   dur:3.2, fn:(c,tau,i)=>sceneEgg(c,tau)},
+  {name:'flight',dur:2.2, fn:(c,tau,i)=>sceneFlight(c,tau)},
+  {name:'eye',   dur:0.9, fn:(c,tau,i)=>sceneEye(c,tau)},
+], score:(ac,t0,dest)=>buildScore(ac,t0,dest)});
 </script>
