@@ -36,6 +36,20 @@ and a three-command installer.
 cd minimax-h3 && ./install/setup.sh check
 ```
 
+### [skills](skills)
+
+Agent skills that stand on their own.
+
+**[hand-drawn-canvas-animation](skills/hand-drawn-canvas-animation)** makes short
+films that look hand-drawn, with every frame drawn by JavaScript on a plain
+Canvas 2D. One HTML file, no images and no video model. It ships a tested
+starter, a worked 9.5-second example, a renderer that turns the file into an mp4
+and a contact sheet, and the rules an agent needs to keep the look consistent.
+
+```bash
+cp -r skills/hand-drawn-canvas-animation ~/.agents/skills/
+```
+
 More lands here as I clean it up.
 
 ---
