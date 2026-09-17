@@ -42,11 +42,12 @@ Agent skills that stand on their own.
 
 **[hand-drawn-canvas-animation](skills/hand-drawn-canvas-animation)** makes short
 films that look hand-drawn or hand-printed, with every frame drawn by
-JavaScript on a plain Canvas 2D. One HTML file on a shared core, no images and
-no video model. Four looks from one palette system: ink on warm paper, riso
-halftone prints, flat screen prints and graphite minimalism, each re-colourable
-in one line. It ships the core, a template, two worked films, a renderer that
-turns a file into an mp4 and a contact sheet, and the rules an agent needs to
+JavaScript on a plain Canvas 2D. One HTML file on a shared core, no libraries
+and no video model. Five looks from one palette system: ink on warm paper, riso
+halftone prints, flat screen prints, graphite minimalism, and brush-pen doodles
+on cut-out photos of real objects, each re-colourable in one line. It ships the
+core, a template, four worked films, a renderer that turns a file into an mp4
+with sound and a contact sheet, a photo cutter, and the rules an agent needs to
 keep a look consistent.
 
 ```bash
