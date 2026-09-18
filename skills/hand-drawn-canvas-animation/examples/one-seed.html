@@ -92,8 +92,8 @@ const GEST = [
   P(17.1, 17.5, circlePts(1880, 1090, 104, 22, -1.2), { r: 8, amount: 2.6 }), Array.from({ length: 8 }, (_, k) => { const a = k / 8 * TAU + .2; return P(17.5 + k * .05, 17.54 + k * .05, [[1880 + Math.cos(a) * 140, 1090 + Math.sin(a) * 140], [1880 + Math.cos(a) * 196, 1090 + Math.sin(a) * 196]], { r: 6, amount: 2.4 }); }),
   [[520, 1880], [700, 1890], [1620, 1884], [1860, 1892]].map(([x, y], k) => P(18.1 + k * .13, 18.2 + k * .13, [[x, y], [x + 18, y - 44], [x + 44, y - 18], [x + 66, y - 52]], { r: 4, amount: 2.2 })),
   // autumn: the wind takes the crown away, leaves fall
-  G.wind(19.4, 22.2, { box: [TX - 420, 860, TX + 1500, 1520], vx: 900, vy: -60, strength: .075, lift: .85, turb: .7 }),
-  G.wind(20.2, 22.2, { box: [TX + 100, 700, 3100, 1500], vx: 1300, vy: -90, strength: .16, lift: .55, turb: 1 }), LEAVES,
+  G.wind(19.4, 22.2, { box: [TX - 520, 780, TX + 1700, 1620], feather: 300, vx: 900, vy: -60, strength: .085, lift: .85, turb: .8 }),
+  G.wind(20.2, 22.2, { box: [TX + 260, 620, 3200, 1560], feather: 420, vx: 1300, vy: -90, strength: .17, lift: .55, turb: 1.2 }), LEAVES,
   // winter
   [[360, 1], [620, -1], [880, 1], [1130, -1], [1370, 1], [1580, -1]].map(([y, d], k) => SP(22.4 + k * .42, 22.82 + k * .42, row(y, d > 0 ? -220 : 3220, d > 0 ? 3220 : -220, 8, 16), { r: 240, amount: 13 })),
   G.fill(24.8, 25.5, MOON, { tool: 'finger', r: 22, spacing: 24 }), P(25.5, 25.8, circlePts(2314, 748, 74, 18), { r: 32, amount: 5 }),
@@ -102,7 +102,7 @@ const GEST = [
   // spring
   P(27.2, 27.5, [[POD[0], POD[1]], [POD[0] + 16, POD[1] + 10]], { r: 9, amount: 3.2 }),
   G.fly(27.9, 30.3, [[POD[0], POD[1]], [1430, 1020], [1830, 880], [2090, 1280], [SX, GY - 16]], { r: 11, wob: 30, seed: 9, land: { r: 11, amount: 3.4 } }),
-  G.wind(27.9, 29.9, { box: [TX, 640, 2900, 1700], vx: 820, vy: -60, strength: .1, lift: .5, turb: .9 }),
+  G.wind(27.9, 29.9, { box: [TX - 200, 560, 3000, 1760], feather: 360, vx: 820, vy: -60, strength: .1, lift: .5, turb: .9 }),
   G.palm(27.9, 28.5, row(420, 3220, -220, 5, 26), { r: 300, strength: .97, streaks: .3, keep: .05 }), G.palm(28.5, 29.0, row(980, -220, 3220, 5, 30), { r: 330, strength: .97, streaks: .3, keep: .05 }), G.palm(29.0, 29.5, row(1480, 3220, -220, 5, 30), { r: 330, strength: .97, streaks: .3, keep: .05 }),
   G.palm(29.5, 30.1, row(1930, -220, 3220, 5, 24), { r: 300, strength: .97, streaks: .35, keep: .05 }),
   SP(30.6, 31.4, row(1930, -120, 3120, 8, 14), { r: 150, amount: 2.4 }), SP(31.4, 32.1, row(2170, 3120, -120, 7, 22), { r: 200, amount: 2.5 }), SP(32.1, 32.8, row(2480, -120, 3120, 6, 30), { r: 240, amount: 2.6 }),

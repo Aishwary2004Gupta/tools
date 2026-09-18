@@ -41,8 +41,9 @@ const G = {
   comb: (t0, t1, pts, o = {}) => { const n = o.fingers ?? 4, sp = o.spacing ?? 26, base = sandPath(pts), out = []; for (let f = 0; f < n; f++) { const off = (f - (n - 1) / 2) * sp, P = []; for (let s = 0; s <= base.len; s += 8) { const q = sandPoint(base, s); P.push([q[0] - q[3] * off, q[1] + q[2] * off]); } out.push({ tool: 'wipe', t0, t1, path: sandPath(P), r: o.r ?? 7, strength: o.strength ?? 1, keep: o.keep ?? 1, ease: o.ease || easeIO, hand: f === Math.floor(n / 2) ? 'palm' : null }); } return out; },
   fill: (t0, t1, poly, o = {}) => { const tool = o.tool || 'pour', r = o.r ?? (tool === 'pour' ? 12 : 16), pts = scanFill(poly, o.spacing ?? r * 1.3, o.angle ?? 0); return tool === 'pour' ? G.pour(t0, t1, pts, { r, amount: o.amount ?? 1.4 }) : G.finger(t0, t1, pts, { r, strength: o.strength ?? 1, keep: o.keep ?? 1 }); },
   move: (t0, t1, pts, o = {}) => ({ tool: 'none', t0, t1, path: sandPath(pts), r: 1, ease: o.ease || easeIO, hand: o.hand || 'palm' }),
-  // wind: sand inside the box creeps along (vx, vy) units per second, the thin top layer first. Nobody's hand is in shot.
-  wind: (t0, t1, o = {}) => ({ tool: 'wind', t0, t1, box: o.box || [0, 0, SAND.world, SAND.world], vx: o.vx ?? 900, vy: o.vy ?? -60, strength: o.strength ?? .5, lift: o.lift ?? 1.4, turb: o.turb ?? .5, ease: o.ease || (t => t), hand: null, path: sandPath([[0, 0], [1, 1]]) }),
+  // wind: sand inside the box creeps along (vx, vy) units per second, the thin top layer first, fading out over `feather`
+  // units at the edges of the box so it never cuts a straight line through the drawing. Nobody's hand is in shot.
+  wind: (t0, t1, o = {}) => ({ tool: 'wind', t0, t1, box: o.box || [0, 0, SAND.world, SAND.world], feather: o.feather ?? 160, vx: o.vx ?? 900, vy: o.vy ?? -60, strength: o.strength ?? .5, lift: o.lift ?? 1.4, turb: o.turb ?? .5, ease: o.ease || (t => t), hand: null, path: sandPath([[0, 0], [1, 1]]) }),
   // fly: a grain, a seed, a flake in the air. It is drawn over the bed while it travels and lands as a small pour.
   fly: (t0, t1, pts, o = {}) => ({ tool: 'fly', t0, t1, path: sandPath(pts), r: o.r ?? 5, light: !!o.light, land: o.land === undefined ? { r: o.r ?? 5, amount: 2.4 } : o.land, wob: o.wob ?? 0, seed: o.seed ?? 1, ease: o.ease || (t => t), hand: null }),
 };
@@ -73,11 +74,13 @@ function _wipe(x, y, r, dx, dy, strength, streaks, keep = 1) { const N = SAND.N,
   if (moved <= 0 || wsum <= 0 || keep <= 0) return; const per = moved * keep / wsum;      // keep < 1: the hand carries sand off the table
   for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const ex = i - x, ey = j - y, d = Math.hypot(ex, ey); if (d >= r && d < r + rw) { const f = (ex * dx + ey * dy) / (d || 1); h[j * N + i] += per * (.3 + .7 * Math.max(0, f)) * (.7 + .6 * _srand()); } } }
 function _blow(g, dt) { const N = SAND.N, h = SAND.h, k = N / SAND.world, bx0 = Math.max(1, Math.floor(g.box[0] * k)), by0 = Math.max(1, Math.floor(g.box[1] * k)), bx1 = Math.min(N - 2, Math.ceil(g.box[2] * k)), by1 = Math.min(N - 2, Math.ceil(g.box[3] * k));
-  const dx = g.vx * k * dt, dy = g.vy * k * dt, sx = dx >= 0 ? -1 : 1, s = g.strength, lift = g.lift, tb = g.turb, st = SAND.streak;
-  for (let j = by0; j <= by1; j++) { const i0 = sx < 0 ? bx1 : bx0, i1 = sx < 0 ? bx0 : bx1;
+  const dx = g.vx * k * dt, dy = g.vy * k * dt, sx = dx >= 0 ? -1 : 1, s = g.strength, lift = g.lift, tb = g.turb, st = SAND.streak, fw = Math.max(1, (g.feather ?? 160) * k);
+  for (let j = by0; j <= by1; j++) { const i0 = sx < 0 ? bx1 : bx0, i1 = sx < 0 ? bx0 : bx1, ey = Math.min(1, (j - by0) / fw, (by1 - j) / fw);
     for (let i = i0; sx < 0 ? i >= i1 : i <= i1; i += sx) { const p = j * N + i, hv = h[p]; if (hv < .05) continue;
-      const tu = st[(i * 7 + j * 13 + (SAND.k * 3)) & 4095], take = Math.min(hv, lift) * s * (.55 + .9 * tu); if (take < .01) continue;
-      const ti = Math.round(i + dx * (.7 + .6 * tu)), tj = Math.round(j + dy * (.7 + .6 * tu) + (tu - .5) * tb * 4);
+      let e = Math.min(ey, (i - bx0) / fw, (bx1 - i) / fw); if (e <= 0) continue; e = e > 1 ? 1 : e * e * (3 - 2 * e);         // the gust fades out at the edges of its box, or it cuts the drawing
+      const tu = st[(i * 7 + j * 13 + (SAND.k * 3)) & 4095] * .6 + st[(i * 23 + j * 3 + 900) & 4095] * .4;
+      const take = Math.min(hv, lift) * s * e * (.6 + .8 * tu); if (take < .01) continue;
+      const ti = Math.round(i + dx * e * (.7 + .6 * tu)), tj = Math.round(j + dy * e * (.7 + .6 * tu) + (tu - .5) * tb * 4);
       h[p] -= take; if (ti >= 0 && tj >= 0 && ti < N && tj < N) h[tj * N + ti] += take; } } }
 function _applyGesture(g, ta, tb) { if (g.tool === 'none') return; const k = SAND.N / SAND.world;
   if (g.tool === 'wind') { if (tb > g.t0 && ta < g.t1) _blow(g, SAND_DT * g.ease(clamp((tb - g.t0) / Math.max(1e-6, g.t1 - g.t0), 0, 1) * 0 + 1)); return; }

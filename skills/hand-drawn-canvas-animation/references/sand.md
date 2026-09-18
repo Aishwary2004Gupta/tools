@@ -89,6 +89,11 @@ The camera makes the medium cinematic, and it is the one thing to plan first. A
 push from a whole table down to a 300-unit window costs nothing and turns a flat
 drawing into a shot.
 
+A gust fades out over `feather` units at the edges of its box (160 by default).
+Without that it cuts a straight line through whatever it reaches, which is the
+first thing that goes wrong with wind. Give a gust across a drawing a feather of
+300 or more, and keep the box well outside what it blows.
+
 Wind takes the top layer only, so its strength has to be small or it eats the
 drawing: `strength: .08` with `lift: .85` thins a sprinkled crown over two
 seconds and leaves the poured branches standing, while `strength: .4` strips the
