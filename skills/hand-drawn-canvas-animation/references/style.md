@@ -19,6 +19,20 @@ A film can live in one look or cut between them. Cutting looks is itself a
 device (`examples/four-looks.html` does it seven times) and must land on a
 hard cut, never inside a shot.
 
+## Three engines beside the looks
+
+A look is how the frame is drawn. An engine changes what the frame is, and each
+one keeps the rules below: paper first, seeded randomness, drawn cadence, hard
+cuts, one anchor, a signed ending.
+
+- **found motion** (`found-motion.md`): the poses are traced from real movement
+  and redrawn with the brush. The palette and the finish are still yours.
+- **sand** (`sand.md`): the frame is a bed of sand that remembers, so the film
+  has no cuts at all. The rule about hard cuts is the one thing it drops, and it
+  pays for that by never showing a transition device either.
+- **paper in space** (`paper3d.md`): the sheets are drawn flat and stood up in a
+  room. Every rule still applies to the sheets; the room only adds light.
+
 ## Rules
 
 These are not suggestions. If a frame breaks one, fix the frame.

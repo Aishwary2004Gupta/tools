@@ -1,6 +1,6 @@
 ---
 name: hand-drawn-canvas-animation
-description: Make a short film that looks hand-drawn or hand-printed, where every frame is drawn by JavaScript on Canvas 2D from one HTML file on top of a shared core, then rendered to mp4 with a generated Web Audio score. Five looks from one core and one palette system - ink on warm paper with hatching, riso halftone prints in fluorescent inks, flat screen prints with dot grids, graphite minimalism with torn sections, and brush-pen doodles drawn on top of cut-out photos of real objects (a shoe becomes a ship) - drawn on twos (12 fps), with blueprint interludes, ink blots, ripples, montages, badge galleries and a hand-lettered sign-off. Use when the user asks for an animation, animated explainer, "мультик", "рисованный ролик", "нарисуй анимацию кодом", a riso or screen-print look, "every frame drawn in JavaScript", doodles on photos or found objects, "дорисуй фото", a procedural or generative short film, or a canvas video in this family of styles for any subject. Not for UI animation, charts or Remotion slide decks.
+description: Make a short film that looks hand-drawn or hand-printed, where every frame is drawn by JavaScript on Canvas 2D from one HTML file on top of a shared core, then rendered to mp4 with a generated Web Audio score. Five looks from one core and one palette system - ink on warm paper with hatching, riso halftone prints in fluorescent inks, flat screen prints with dot grids, graphite minimalism with torn sections, and brush-pen doodles drawn on top of cut-out photos of real objects (a shoe becomes a ship) - drawn on twos (12 fps), with blueprint interludes, ink blots, ripples, montages, badge galleries and a hand-lettered sign-off. Three engines go further than drawing on a flat frame: found motion traces real movement (Muybridge's motion studies, or the user's own video) into strokes the film redraws; sand animation runs a bed of sand on a backlit glass that a hand pours, wipes and sweeps in one take with no cuts; paper in space stands the drawn sheets up in a 3D room as a pop-up book with turning pages, rising cut-outs, light and shadow. Use when the user asks for an animation, animated explainer, "мультик", "рисованный ролик", "нарисуй анимацию кодом", a riso or screen-print look, "every frame drawn in JavaScript", doodles on photos or found objects, "дорисуй фото", sand animation, "песочная анимация", a pop-up book, a paper theatre, rotoscope, "оживи движение", "сделай из моего видео мультик", a procedural or generative short film, or a canvas video in this family of styles for any subject. Not for UI animation, charts or Remotion slide decks.
 ---
 
 # Hand-drawn canvas animation
@@ -24,9 +24,16 @@ two demo scenes).
 |---|---|
 | `assets/core.js` | the core: palettes and colour maths, four finishes, marks, lattices, motifs, reveals, photos and doodles, camera, timeline, score plumbing, player, render hooks. Copy next to every film. Never edit per film. |
 | `assets/film-template.html` | the file you copy and edit: brief, palette, a puppet, two demo scenes, score, `defineFilm`. |
+| `assets/roto.js`, `scripts/roto.py` | found motion. The script traces a clip's frames into vector strokes with pen widths, and the module redraws a pose with the brush. |
+| `assets/sand.js` | sand on a light table. A bed that remembers, gestures, wind, flying grains, a camera over the table. |
+| `assets/paper3d.js` | paper in space. Sheets on 3D quads, a pop-up book, shading, shadows, a travelling camera. |
 | `examples/four-looks.html` | a paper boat through riso, screen, pencil and ink with the devices of each look. Read it when a recipe from N to Z is unclear. |
 | `examples/fly-style.html` | a 9.5 s ink film: peach, ink blot, dividing egg, camera-follow flight, compound-eye mosaic. Read it for recipes A to H. |
 | `examples/held-once.html`, `examples/held-once-photos.js` | a 22 s doodle film on five CC0 museum photos. A teapot tips, a watch gets a drawn hand, a violin sails, a lantern is lit at night, two hedgehogs sit inside a cup. Read it before any doodle film. |
+| `examples/gallop.html`, `examples/gallop-clips.js` | 34.5 s of found motion. Muybridge's question about the gallop, 12 cameras, the airborne frame, a zoopraxiscope disc that spins up until the horse runs, a parade of elephant, kangaroo and pigeons. |
+| `examples/one-year.html` | 39.5 s of sand in one take, a tree through its year, swept clean, and two words poured at the end. |
+| `examples/moon-book.html` | 29 s pop-up book with a forest spread, a tower of museum things, the room going dark and the paper moon lighting up. |
+| `examples/paper-horse.html` | 47 s with all three engines at once. A book whose page is a light table the camera dives into, a paper horse with a real gallop, an escape onto the desk. |
 | `examples/night-shift.html`, `examples/night-shift-photos.js` | a 31 s chase on nine CC0 museum photos at 120 bpm, signed with a museum label that carries the author's handle. It shows a pool of light moving through the dark (`nightShot`), runners on the real silhouette of a violin (`rim`), a following camera with whip cuts (`setView`, `whip`), and photos that recoil, roar and gallop. Read it for any doodle film with a story. |
 | `scripts/render.mjs`, `scripts/package.json` | headless render from the page's own canvas: `--grid` sheet in seconds, `--only` spot frames, `--ar` and `--width` for format and resolution, full mp4 on twos with a contact sheet, and `<film>-final.mp4` with the score muxed in. |
 | `scripts/photo.mjs` | doodle look only: cuts a found photo out of its background (`rembg` if present, colour flood otherwise), writes it into `photos.js` and a check sheet with a coordinate grid. |
@@ -34,6 +41,9 @@ two demo scenes).
 | `references/palettes.md` | the palette schema, presets, deriving, tints and shades, finishes and plates. Read before picking colours. |
 | `references/scenes.md` | 39 scene recipes across the five looks, timing rules, score motifs. Read while writing the beat sheet. |
 | `references/architecture.md` | file layout, invariants, the API index, puppets, riso plates, budget, rendering, pitfalls. Read before editing code. |
+| `references/found-motion.md` | where real movement comes from, how `roto.py` traces a clip, how to draw with one, what makes a story out of it. |
+| `references/sand.md` | the medium's rules, among them dark is sand and light is glass and nothing disappears, plus the gestures, camera, wind, flying grains, score. |
+| `references/paper3d.md` | axes, sheets, the book, pieces that rise, shading and shadows, free-standing cut-outs. |
 | `references/doodle.md` | the fifth look end to end: how to find an idea in an object, source and cut photos, read anchor points, run several pens, put drawings inside and behind the object, night. Read it instead of guessing whenever a photo is involved. |
 | `references/brief-template.md` | the brief to fill from the user's request. |
 | `references/reference-films.md` | measurements and shot lists of the five films the looks come from. |
@@ -130,6 +140,23 @@ Each item found on the contact sheet or in a spot frame is a defect:
 - page errors printed by `render.mjs`;
 - in a doodle film, anything on the defect list at the end of
   `references/doodle.md`.
+
+## The three engines
+
+Each one replaces a different part of "draw the frame": where the motion comes
+from, what the frame is made of, and where the paper is. They load next to
+`core.js` and combine freely (`examples/paper-horse.html` uses all three).
+
+| engine | load | the frame is | read first |
+|---|---|---|---|
+| found motion | `assets/roto.js` + a `clips.js` from `scripts/roto.py` | drawn as always, but the poses are traced from real movement | `references/found-motion.md` |
+| sand | `assets/sand.js` | a bed of sand a hand works in one take, no cuts | `references/sand.md` |
+| paper in space | `assets/paper3d.js` | sheets drawn in 2D and stood up in a 3D room | `references/paper3d.md` |
+
+Pick one when the brief asks for it, or when the subject is better served by it
+than by a flat drawing: a real animal's walk, a story that must not cut, a story
+about a book or a stage. Do not stack all three without a reason; the combined
+example needs 47 seconds to give each of them room.
 
 ## Adapting to other subjects
 

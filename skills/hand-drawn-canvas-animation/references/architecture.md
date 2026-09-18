@@ -74,6 +74,9 @@ libx264 needs it.
 | motifs | `seedDot`, `ripples`, `dashedRing`, `dottedArc`, `plant`, `tornEdge`, `section`, `stickyNote`, `thread`, `signOff` |
 | reveals, composition | `selfDraw`, `blot`, `iris`, `mosaic`, `montage`, `badges`, `flash` |
 | photos, doodles | `registerPhoto`, `PHOTOS`, `place`, `on`, `onAll`, `photo`, `photoFront`, `photoSheet`, `backdrop`, `nightfall`, `glow`, `chalkPalette`, `pastel`, `PASTELS`, `spline`, `splinePath`, `brush`, `wash`, `gouache`, `boil`, `doodle`, `pen`, `nightShot`, `rim`, `setView`, `viewT`, `whip` (see `doodle.md`) |
+| found motion (`assets/roto.js`) | `registerClip`, `CLIPS`, `roto`, `rotoPose`, `rotoSprite`, `drawSprite`, `rotoGap`, `rotoAirborne` (see `found-motion.md`) |
+| sand (`assets/sand.js`) | `sandFilm`, `sandFrame`, `sandAdvance`, `sandImage`, `sandRender`, `sandLive`, `sandLook`, `sandTint`, `sandToScreen`, `sandScale`, `G.*`, `scanFill`, `circlePts`, `spiralPts` (see `sand.md`) |
+| paper in space (`assets/paper3d.js`) | `cam3`, `proj3`, `tex3`, `quad3`, `shadeOf`, `shadow3`, `shadowsBegin`, `shadowsEnd`, `book3`, `V3` (see `paper3d.md`) |
 | sheets | `styleSheet`, `paletteSheet` |
 | runtime | `defineFilm({palette, timeline, score, format})`, `gridSheet(n, cellW)`, `note`, `noiseBurst`, `pentHz`; hooks `window.__frame(i)` (PNG data URL), `window.__grid(n)`, `window.__size`, `window.__wav()` (base64 WAV of the score), `window.__ready` (set after every registered photo has decoded) |
 

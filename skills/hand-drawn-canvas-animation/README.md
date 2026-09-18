@@ -37,6 +37,19 @@ ink inside the pool of light and chalk outside it.
 | pencil | `pencilMinimal` | thin graphite | cream and charcoal, torn sections, walls of squiggle text, pressed plants, a thread down the page |
 | doodle | `doodlePastel` | brush pen, watercolour wash, white gouache | a cut-out photo on a pastel sheet, drawings that draw themselves on, behind and inside the object, night with lamps |
 
+Three engines go further than drawing on a flat frame. Found motion traces real
+movement into strokes the film redraws, sand animation runs a bed of sand that a
+hand works in one unbroken take, and paper in space stands the drawn sheets up as
+a pop-up book. They load next to the core and can be used together.
+
+| engine | file | what changes |
+|---|---|---|
+| found motion | [`assets/roto.js`](assets/roto.js), [`scripts/roto.py`](scripts/roto.py) | the poses come from a real motion study or the user's own video, traced stroke by stroke |
+| sand | [`assets/sand.js`](assets/sand.js) | the frame is a bed of sand on backlit glass, poured, wiped, swept and blown; nothing is redrawn |
+| paper in space | [`assets/paper3d.js`](assets/paper3d.js) | the sheets stand in a 3D room: pages turn, cut-outs rise, light and shadow |
+
+![Found motion, sand and paper in space](assets/preview-methods.jpg)
+
 Any of them re-colours in one line, with a preset, a preset with overrides, a
 hue-shifted derivative, or a duotone. The film is drawn at 12 fps and doubled
 to 24, the way cel animation is shot on twos. That cadence does more for the
@@ -53,12 +66,19 @@ feel than any texture.
 | [`examples/fly-style.html`](examples/fly-style.html) | a 9.5 s ink film: peach, ink blot, dividing egg, flight through a kitchen, compound-eye view |
 | [`examples/held-once.html`](examples/held-once.html) | a 22 s doodle film on five museum photos, with its photos in `held-once-photos.js` |
 | [`examples/night-shift.html`](examples/night-shift.html) | a 31 s chase at night on nine museum photos: moving light, runners on the real edge of a violin, a camera that follows and whips on the cuts |
+| [`examples/gallop.html`](examples/gallop.html) | 34.5 s of found motion. Muybridge's 1878 question, the airborne frame, a disc that spins up until the horse runs |
+| [`examples/one-year.html`](examples/one-year.html) | 39.5 s of sand in one take, a tree through its year |
+| [`examples/moon-book.html`](examples/moon-book.html) | a 29 s pop-up book with a paper moon that lights up |
+| [`examples/paper-horse.html`](examples/paper-horse.html) | 47 s with all three engines. A book whose page is a light table, and a horse that runs out of it |
 | [`scripts/render.mjs`](scripts/render.mjs) | a 24-frame sheet in seconds, spot frames, format and resolution flags, mp4 with the score muxed in, contact sheet, from one headless Chrome |
 | [`scripts/photo.mjs`](scripts/photo.mjs) | cuts a found photo out of its background, registers it as a data URL, writes a check sheet with a coordinate grid |
 | [`references/style.md`](references/style.md) | the five looks, fourteen rules, a table from plain words to kit calls |
 | [`references/palettes.md`](references/palettes.md) | the palette schema, presets, deriving, tints and shades, finishes and riso plates |
 | [`references/scenes.md`](references/scenes.md) | thirty-nine scene recipes, timing, score motifs |
 | [`references/architecture.md`](references/architecture.md) | file layout, API index, how to build a character, riso plates, pitfalls |
+| [`references/found-motion.md`](references/found-motion.md) | sources of real movement, how to trace a clip and draw with one |
+| [`references/sand.md`](references/sand.md) | the rules of the sand table, its gestures, camera, wind and score |
+| [`references/paper3d.md`](references/paper3d.md) | sheets in 3D, the pop-up book, shading and shadows |
 | [`references/doodle.md`](references/doodle.md) | the doodle look: finding the idea in an object, sourcing and cutting photos, anchors, pens, drawings inside the object, night |
 | [`references/brief-template.md`](references/brief-template.md) | the brief the agent fills before writing code |
 | [`references/reference-films.md`](references/reference-films.md) | measurements and shot lists of the five films |
@@ -73,6 +93,9 @@ cp -r hand-drawn-canvas-animation ~/.agents/skills/
 
 If your agent reads skills from another directory, copy the folder there.
 Project scope is `.agents/skills/` inside the repo you work in.
+
+Tracing a clip for found motion needs Python with numpy, scipy, scikit-image
+and pillow (`pip install numpy scipy scikit-image pillow`); nothing else does.
 
 Rendering needs Node 18 or newer, Google Chrome or Chromium, and ffmpeg.
 `puppeteer-core` drives the Chrome you already have and downloads nothing.
