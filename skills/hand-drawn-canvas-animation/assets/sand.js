@@ -9,6 +9,7 @@
 //   sandFrame(c, t, live)                    bring the bed to time t (seconds) and draw it; call it first in a scene
 //   sandLook(x, y, w)                        the camera over the table: this window fills the frame (world units)
 //   sandTint([r, g, b])                      the colour of the lamp under the glass, 1 = as it is
+//   sandCover({ box, amount })               pass as init: the film starts on a table already covered in sand
 //   G.pour / sprinkle / finger / palm / comb / dab / fill / wind / fly / move      gestures, times in seconds
 //
 // The table is a square of `world` units (default: the long side of the frame), the bed is N x N cells over it.
@@ -47,9 +48,15 @@ const G = {
   // fly: a grain, a seed, a flake in the air. It is drawn over the bed while it travels and lands as a small pour.
   fly: (t0, t1, pts, o = {}) => ({ tool: 'fly', t0, t1, path: sandPath(pts), r: o.r ?? 5, light: !!o.light, land: o.land === undefined ? { r: o.r ?? 5, amount: 2.4 } : o.land, wob: o.wob ?? 0, seed: o.seed ?? 1, ease: o.ease || (t => t), hand: null }),
 };
-function sandFilm({ gestures, N = 540, world = null, hand = true }) { SAND.N = N; SAND.world = world || Math.max(W, H); SAND.h = new Float32Array(N * N); const all = gestures.flat(Infinity).sort((a, b) => a.t0 - b.t0);
-  SAND.gestures = all; SAND.air = all.filter(g => g.tool === 'fly'); SAND.hand = hand; SAND.k = 0; SAND.seed = 1; SAND.view = null; SAND.tint = null;
+function sandFilm({ gestures, N = 540, world = null, hand = true, init = null }) { SAND.N = N; SAND.world = world || Math.max(W, H); SAND.h = new Float32Array(N * N); const all = gestures.flat(Infinity).sort((a, b) => a.t0 - b.t0);
+  SAND.gestures = all; SAND.air = all.filter(g => g.tool === 'fly'); SAND.hand = hand; SAND.k = 0; SAND.view = null; SAND.tint = null; SAND.init = init; _sandReset();
   SAND.streak = new Float32Array(4096); let s = 7; for (let i = 0; i < 4096; i++) { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; SAND.streak[i] = s / 4294967296; } for (let pass = 0; pass < 2; pass++) for (let i = 1; i < 4095; i++) SAND.streak[i] = (SAND.streak[i - 1] + SAND.streak[i] * 2 + SAND.streak[i + 1]) / 4; }
+// the bed at time zero: empty glass, or whatever init lays down (a table already covered in sand, see sandCover)
+function _sandReset() { SAND.h.fill(0); SAND.seed = 1; if (SAND.init) SAND.init(SAND.h, SAND.N, SAND.world); }
+// sandCover: an init that starts the film on a table already covered, inside box (world units), with soft edges.
+// The most striking sand pictures are made by taking sand away: start covered and draw with the fingertip.
+const sandCover = ({ box = null, amount = 3.2, grain = .5, feather = 140, seed = 3 } = {}) => (h, N, world) => { const k = N / world, r = rng(seed), [x0, y0, x1, y1] = box || [0, 0, world, world], fw = Math.max(1, feather * k);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const e = Math.min((i - x0 * k) / fw, (x1 * k - i) / fw, (j - y0 * k) / fw, (y1 * k - j) / fw); if (e <= 0) continue; h[j * N + i] += amount * (e >= 1 ? 1 : e * e * (3 - 2 * e)) * (1 - grain / 2 + grain * r()); } };
 function sandLook(x, y, w) { SAND.view = (x === null || x === undefined) ? null : { x, y, w }; }
 function sandTint(t) { SAND.tint = t; }
 function sandViewRect(aw = OUT_W, ah = OUT_H) { const V = SAND.view || { x: SAND.world / 2, y: SAND.world / 2, w: SAND.world }; return { x: V.x, y: V.y, w: V.w, h: V.w * ah / aw }; }
@@ -68,11 +75,14 @@ function _slump(box, passes = 1, talus = 2.2) { const N = SAND.N, h = SAND.h, x0
       if (bi >= 0) { const m = (bd - talus) * .25; h[q] -= m; h[bi] += m; } } }
 function _sprinkle(x, y, R, grains, amount) { const N = SAND.N, h = SAND.h; for (let k = 0; k < grains; k++) { const a = _srand() * TAU, d = R * Math.sqrt(_srand()) * (.55 + .45 * _srand()), fx = x + Math.cos(a) * d, fy = y + Math.sin(a) * d * .8, i = Math.floor(fx), j = Math.floor(fy); if (i < 1 || j < 1 || i >= N - 2 || j >= N - 2) continue;
     const tx = fx - i, ty = fy - j, v = amount * (.4 + 1.2 * _srand()), p = j * N + i; h[p] += v * (1 - tx) * (1 - ty); h[p + 1] += v * tx * (1 - ty); h[p + N] += v * (1 - tx) * ty; h[p + N + 1] += v * tx * ty; } }
-function _wipe(x, y, r, dx, dy, strength, streaks, keep = 1) { const N = SAND.N, h = SAND.h, rw = Math.max(2.5, r * .4), R = Math.ceil(r + rw + 1), x0 = Math.max(0, Math.floor(x - R)), x1 = Math.min(N - 1, Math.ceil(x + R)), y0 = Math.max(0, Math.floor(y - R)), y1 = Math.min(N - 1, Math.ceil(y + R)); let moved = 0, wsum = 0;
-  for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const ex = i - x, ey = j - y, d = Math.hypot(ex, ey); if (d < r) { let k = strength * (1 - sm(.72 * r, r, d, t => t)); if (streaks) { const perp = ex * -dy + ey * dx; k *= 1 - streaks * SAND.streak[(Math.round(perp * 3 + 2048) & 4095)]; } const p = j * N + i, m = h[p] * k; h[p] -= m; moved += m; }
-    else if (d < r + rw) { const f = (ex * dx + ey * dy) / (d || 1); wsum += .3 + .7 * Math.max(0, f); } }
+// _wipe: a fingertip or a palm. The edge is ragged (each cell has its own threshold, so grains break off unevenly), and the
+// sand it moves is pushed ahead and aside into a soft berm that fades with distance, never back into the trail.
+const _cellNoise = (i, j) => SAND.streak[(Math.imul(i, 73856093) ^ Math.imul(j, 19349663)) & 4095];
+function _wipe(x, y, r, dx, dy, strength, streaks, keep = 1) { const N = SAND.N, h = SAND.h, rw = Math.max(3, r * .75), R = Math.ceil(r * 1.12 + rw + 1), x0 = Math.max(0, Math.floor(x - R)), x1 = Math.min(N - 1, Math.ceil(x + R)), y0 = Math.max(0, Math.floor(y - R)), y1 = Math.min(N - 1, Math.ceil(y + R)); let moved = 0, wsum = 0;
+  for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const ex = i - x, ey = j - y, d = Math.hypot(ex, ey), re = r * (.88 + .3 * _cellNoise(i, j)); if (d < re) { let k = strength * (1 - sm(.5 * r, re, d, t => t)); if (streaks) { const perp = ex * -dy + ey * dx; k *= 1 - streaks * SAND.streak[(Math.round(perp * 3 + 2048) & 4095)]; } const p = j * N + i, m = h[p] * k; h[p] -= m; moved += m; }
+    else if (d < re + rw) { const f = (ex * dx + ey * dy) / (d || 1), wv = (.3 + .9 * f) * (1 - (d - re) / rw); if (wv > 0) wsum += wv; } }
   if (moved <= 0 || wsum <= 0 || keep <= 0) return; const per = moved * keep / wsum;      // keep < 1: the hand carries sand off the table
-  for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const ex = i - x, ey = j - y, d = Math.hypot(ex, ey); if (d >= r && d < r + rw) { const f = (ex * dx + ey * dy) / (d || 1); h[j * N + i] += per * (.3 + .7 * Math.max(0, f)) * (.7 + .6 * _srand()); } } }
+  for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const ex = i - x, ey = j - y, d = Math.hypot(ex, ey), re = r * (.88 + .3 * _cellNoise(i, j)); if (d >= re && d < re + rw) { const f = (ex * dx + ey * dy) / (d || 1), wv = (.3 + .9 * f) * (1 - (d - re) / rw); if (wv > 0) h[j * N + i] += per * wv * (.7 + .6 * _srand()); } } }
 function _blow(g, dt) { const N = SAND.N, h = SAND.h, k = N / SAND.world, bx0 = Math.max(1, Math.floor(g.box[0] * k)), by0 = Math.max(1, Math.floor(g.box[1] * k)), bx1 = Math.min(N - 2, Math.ceil(g.box[2] * k)), by1 = Math.min(N - 2, Math.ceil(g.box[3] * k));
   const dx = g.vx * k * dt, dy = g.vy * k * dt, sx = dx >= 0 ? -1 : 1, s = g.strength, lift = g.lift, tb = g.turb, st = SAND.streak, fw = Math.max(1, (g.feather ?? 160) * k);
   for (let j = by0; j <= by1; j++) { const i0 = sx < 0 ? bx1 : bx0, i1 = sx < 0 ? bx0 : bx1, ey = Math.min(1, (j - by0) / fw, (by1 - j) / fw);
@@ -88,7 +98,7 @@ function _applyGesture(g, ta, tb) { if (g.tool === 'none') return; const k = SAN
   const ua = g.ease(clamp((ta - g.t0) / (g.t1 - g.t0), 0, 1)), ub = g.ease(clamp((tb - g.t0) / (g.t1 - g.t0), 0, 1)); if (ub <= ua && !(g.quick && ta <= g.t0)) return; const sa = ua * g.path.len, sb = ub * g.path.len, r = g.r * k;
   if (g.tool === 'sprinkle') { const q = sandPoint(g.path, (sa + sb) / 2), area = r * r; _sprinkle(q[0] * k, q[1] * k, r, Math.max(1, Math.round(area * .075 * g.amount)), .42); return; }
   const step = Math.max(.8, r * (g.tool === 'pour' ? .5 : .22)) / k; for (let s = sa; s <= sb + 1e-9; s += step) { const q = sandPoint(g.path, s); if (g.tool === 'pour') _pour(q[0] * k, q[1] * k, r, g.amount * .42); else _wipe(q[0] * k, q[1] * k, r, q[2], q[3], g.strength, g.streaks || 0, g.keep ?? 1); if (sb - sa < 1e-6) break; } }
-function sandAdvance(t) { const K = Math.floor(t / SAND_DT + 1e-6); if (K < SAND.k) { SAND.h.fill(0); SAND.k = 0; SAND.seed = 1; }
+function sandAdvance(t) { const K = Math.floor(t / SAND_DT + 1e-6); if (K < SAND.k) { _sandReset(); SAND.k = 0; }
   while (SAND.k < K) { const ta = SAND.k * SAND_DT, tb = ta + SAND_DT; for (const g of SAND.gestures) { if (g.t0 >= tb) break; if (g.t1 > ta - SAND_DT) _applyGesture(g, ta, tb); } SAND.k++; } }
 
 // ---------- the look ----------

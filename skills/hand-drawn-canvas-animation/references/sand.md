@@ -30,6 +30,18 @@ function scene(c, tau, i) { sandFrame(c, tau); }                // the whole sce
 Nothing else is needed for a plain film: with the default camera, world units
 are frame units.
 
+A film can also start on a table that is already covered:
+
+```js
+sandFilm({ gestures, N: 1300, world: 3000, init: sandCover({ box: [220, 560, 2100, 2460], amount: 1.9, grain: .7 }) });
+```
+
+That is the strongest opening the medium has. A dark table under a cold lamp, a
+fingertip taking a picture out of it in light, then the palm wiping it all back
+to bright glass. `examples/one-seed.html` opens this way for five and a half
+seconds before its story starts. Keep the covered box inside what the wipes
+will clear, or its edges show up later when the camera pulls back.
+
 ## Gestures
 
 ```js
@@ -61,6 +73,10 @@ examples carry a little single-stroke alphabet, copy it.
 - **Dark is sand, light is glass.** To make something dark, pour or sprinkle it.
   To make something light, wipe it. A light shape on a light sky is invisible,
   so put a dark sky behind it first.
+- **Draw by taking away.** A line wiped out of a covered table glows, gets a
+  soft dark berm on both sides and a ragged edge where grains break off
+  unevenly. It is the picture people remember from sand animation. A layer of
+  about 2 reads as dark sand and still shows its grain; 3 and more is flat black.
 - **Nothing disappears.** Sand a fingertip moves ends up beside the stroke. Plan
   those ridges as part of the picture: a swept sky leaves the horizon, a swept
   ground leaves a dune. When you really want sand gone, sweep with
