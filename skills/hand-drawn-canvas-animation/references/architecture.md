@@ -38,7 +38,13 @@ libx264 needs it.
 
 - `drawFrame(i)` is a pure function of the drawn-frame index. Scenes keep no
   state between frames and never read the clock. Same `i`, same pixels, on
-  any machine.
+  any machine. Every motion helper (`key`, `spring`, `settle`, `drift`...) is
+  a pure function of time for the same reason.
+- A film draws at 12 fps (default) or 24 (`defineFilm({ fps: 24 })`). The
+  `i` a scene receives is always the frame index on the 12 fps grid, so
+  `pulse`, `boil` and `flicker` keep their meaning; `tau` is continuous in a
+  24 fps film unless the scene is marked `twos: true`. `twos(tau)` snaps a
+  time to the grid for a character's pose.
 - A scene is `sceneX(c, tau, i)`: `c` a 2D context (main canvas or a layer),
   `tau` seconds since the scene started, `i` the global drawn frame.
 - The timeline is `[{name, dur, fn}]`. Boundaries are the cuts. Duration and
@@ -66,19 +72,21 @@ libx264 needs it.
 | config | `W`, `H`, `CX`, `CY`, `S`, `OUT_W`, `OUT_H`, `SHORT`, `setFormat({ar, width})`, `FPS_DRAW`, `FPS_OUT`, `TAU`, `HAND_FONT` |
 | colour | `lerp`, `clamp`, `parseColor`, `toHex`, `mix`, `tint`, `shade`, `alpha`, `hsl`, `withHsl`, `rotateHue`, `saturate`, `lighten`, `ramp`, `harmony` |
 | palettes | `PALETTES`, `PAL`, `usePalette`, `makePalette`, `derivePalette`, `duotone` |
-| random, easing | `rng(seed)`, `easeIO`, `easeOut`, `easeIn`, `sm(a, b, t, ease)`, `flicker(i, period)`, `pulse(i, every, hold)` |
-| geometry | `ellPts`, `ellPath`, `circPath`, `rectPath`, `roundRectPath`, `polyPath`, `pathLength`, `bez`, `layer(w, h)`, `cam`, `resetT`, `blit(c, layer)` |
-| marks | `wob`, `crayon`, `hatch(c, path, box, opts)`, `grain`, `scribble`, `cross`, `construction`, `squiggleText`, `handText` |
+| random, easing | `rng(seed)`, `hash(k, seed)`, `noise1(x, seed)`, `drift(t, seed, {amp, freq})`, `easeIO` (cubic), `easeOut`, `easeIn`, `easeOutQuint`, `easeInOutQuint`, `easeInOutSine`, `easeOutExpo`, `easeOutBack`, `easeInBack`, `easeOutElastic`, `sm(a, b, t, ease)`, `flicker(i, period)`, `pulse(i, every, hold)`, `twos(tau)` |
+| motion | `key(t, keys, ease)`, `keyPath(t, keys, {ease})`, `spring(t, {freq, damp})`, `settle(t, t0, {amp, freq, decay, phase})`, `anticipate(a, b, t, {back, hold, e})`, `arc(a, b, u, lift)`, `squash(k)`, `breathe(t, period, phase)`, `camKeys(c, tau, keys, {ease, hand, seed})`, `smear(c, n, span, draw)` (see `motion.md`) |
+| geometry | `ellPts`, `ellPath`, `circPath`, `rectPath`, `rectPts`, `roundRectPath`, `polyPath`, `pathLength`, `bez`, `layer(w, h)`, `cam`, `resetT`, `blit(c, layer)` |
+| organic forms | `blob(cx, cy, rx, ry, seed, {amp, rot, n})`, `smoothPts(pts, close, step, corner)`, `curvePath(pts, close, corner)`, `warp(pts, seed, amp, close, step)` |
+| marks | `wob(c, pts, amp, seed, close, {pressure, smooth, corner, freq})`, `crayon`, `hatch(c, path, box, opts)` (`flow`, `curve`), `grain`, `scribble`, `cross`, `construction`, `squiggleText`, `handText` |
 | finishes | `surface(c, path, box, opts)`, `dotScreen`, `plate()`, `printPlate`, `paper`, `night` |
 | lattices, particles | `hexPath`, `hexCells`, `hexLattice`, `aster`, `dotBurst`, `speedLines`, `loops` |
 | motifs | `seedDot`, `ripples`, `dashedRing`, `dottedArc`, `plant`, `tornEdge`, `section`, `stickyNote`, `thread`, `signOff` |
-| reveals, composition | `selfDraw`, `blot`, `iris`, `mosaic`, `montage`, `badges`, `flash` |
+| reveals, composition | `selfDraw`, `blot`, `iris`, `mosaic`, `montage`, `badges`, `flash`, `smear` |
 | photos, doodles | `registerPhoto`, `PHOTOS`, `place`, `on`, `onAll`, `photo`, `photoFront`, `photoSheet`, `backdrop`, `nightfall`, `glow`, `chalkPalette`, `pastel`, `PASTELS`, `spline`, `splinePath`, `brush`, `wash`, `gouache`, `boil`, `doodle`, `pen`, `nightShot`, `rim`, `setView`, `viewT`, `whip` (see `doodle.md`) |
 | found motion (`assets/roto.js`) | `registerClip`, `CLIPS`, `roto`, `rotoPose`, `rotoSprite`, `drawSprite`, `rotoGap`, `rotoAirborne` (see `found-motion.md`) |
 | sand (`assets/sand.js`) | `sandFilm`, `sandFrame`, `sandAdvance`, `sandImage`, `sandRender`, `sandLive`, `sandLook`, `sandTint`, `sandToScreen`, `sandScale`, `G.*`, `scanFill`, `circlePts`, `spiralPts` (see `sand.md`) |
 | paper in space (`assets/paper3d.js`) | `cam3`, `proj3`, `tex3`, `quad3`, `shadeOf`, `shadow3`, `shadowsBegin`, `shadowsEnd`, `book3`, `V3` (see `paper3d.md`) |
 | sheets | `styleSheet`, `paletteSheet` |
-| runtime | `defineFilm({palette, timeline, score, format})`, `gridSheet(n, cellW)`, `note`, `noiseBurst`, `pentHz`; hooks `window.__frame(i)` (PNG data URL), `window.__grid(n)`, `window.__size`, `window.__wav()` (base64 WAV of the score), `window.__ready` (set after every registered photo has decoded) |
+| runtime | `defineFilm({palette, timeline, score, format, fps})`, `gridSheet(n, cellW)`, `note`, `noiseBurst`, `pentHz`; hooks `window.__frame(i)` (PNG data URL, cached when the frame equals the last one), `window.__grid(n)`, `window.__size`, `window.__fps`, `window.__wav()` (base64 WAV of the score), `window.__ready` (set after every registered photo has decoded) |
 
 Signatures worth knowing by heart:
 
@@ -102,10 +110,14 @@ patches, one too large only costs time.
 
 ## Building a puppet
 
-1. **Parts.** 3 to 8 parts as ellipses, circles, rounded rects or polygons in
-   local coordinates, about 200 px tall at scale 1. Keep the arguments in an
-   `ARGS` object and build a `Path2D` per part from them; `ellPts(...ARGS.x)`
-   reuses them for the wobbly outline.
+1. **Parts.** 3 to 8 parts in local coordinates, about 200 px tall at scale
+   1. Keep the arguments in an `ARGS` object, make the points of each part
+   with `blob(...ARGS.x, seed, { amp: .05 })` (an ellipse that is not quite
+   one), the fill with `curvePath(pts)` and the outline with `wob(c, pts, ...)`
+   on the same points. Rounded rects and polygons go through `warp` so no edge
+   is ruler-straight. Limbs are polylines with two or three points per bone,
+   drawn with `wob(..., { pressure: .7 })`: the joints stay corners, the bones
+   curve.
 2. **Pose.** 3 to 6 numbers: `walk`, `twitch`, `wing`, `flap`, `tuck`,
    `tilt`. Nothing else.
 3. **Order.** Limbs behind, translucent parts, body parts back to front,
@@ -230,4 +242,12 @@ function sceneRoom(c, tau, i) {
 - `drawImage(layer, 0, 0)` draws the layer at output-pixel size; under a
   scaled format it lands wrong. Use `blit(c, layer)` or pass `W, H`.
 - Loading `core.js` twice, or redefining `W`, `H`, `PAL` in the film, throws
-  at load: top-level `const`s are shared across classic scripts.
+  at load: top-level `const`s are shared across classic scripts. The same for
+  a film's own `key`, `arc`, `drift`, `spring`, `hash` or any other core name:
+  the page never sets `__ready` and `render.mjs` waits until it times out.
+- `wob` on a rectangle keeps the corners; `wob` on a dense polyline curves
+  it. A polyline that must stay angular (a lightning bolt, a saw) passes
+  `{ smooth: false }`.
+- `pressure` strokes one segment at a time. Fine for outlines, wrong for a
+  hatch or a lattice: those stay single-path.
+- `drift` and `breathe` through `twos()` step visibly. They run on ones.

@@ -6,7 +6,7 @@
 // Usage:
 //   node render.mjs film.html                 all drawn frames -> mp4 + contact sheet, and <film>-final.mp4 with the score if the film has one
 //   node render.mjs film.html --grid 24       a sheet of 24 evenly spaced frames, nothing else (look at this first)
-//   node render.mjs film.html --only 0,24,47  just these frames, PNG only (spot check)
+//   node render.mjs film.html --only 0,24,47  just these frames, PNG only (spot check); frame index = seconds x the film's fps (12, or 24 with fps: 24)
 //   node render.mjs film.html --ar 9:16 --width 1080   format and output width (default 1:1, short side 1080)
 //   node render.mjs film.html --out renders   output dir (default: <html dir>/out)
 // Frames come from the page's own canvas (toDataURL), not from a screenshot, so CSS and DPR never matter.
@@ -45,16 +45,16 @@ const url = pathToFileURL(path.resolve(file)).href + `?bare=1&frame=0&ar=${encod
 const browser = await puppeteer.launch({executablePath: findChrome(), headless: true});
 const save = (file, dataUrl) => writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
 const errors = [];
-let total = 0, wavFile = null;
+let total = 0, wavFile = null, fps = 12;
 try {
   const page = await browser.newPage();
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(url, {waitUntil: 'load'});
   await page.waitForFunction('window.__ready === true', {timeout: 120000});
-  const N = await page.evaluate(() => window.__NDRAW), size = await page.evaluate(() => window.__size);
+  const N = await page.evaluate(() => window.__NDRAW), size = await page.evaluate(() => window.__size); fps = await page.evaluate(() => window.__fps || 12);
   if (!Number.isInteger(N) || N <= 0) throw new Error('window.__NDRAW missing: the page did not load or is not built on film-template.html');
-  total = N; console.log(`${name}: ${N} drawn frames, logical ${size.W}x${size.H}, output ${size.w}x${size.h}`);
+  total = N; console.log(`${name}: ${N} drawn frames at ${fps} fps, logical ${size.W}x${size.H}, output ${size.w}x${size.h}`);
   if (grid) { const sheet = path.join(outDir, `${name}-grid.jpg`); save(sheet, await page.evaluate(n => window.__grid(n, 240), grid)); console.log(`grid: ${sheet}`); }
   const list = grid ? [] : only ? only.filter(i => i >= 0 && i < N) : [...Array(N).keys()];
   const t0 = Date.now();
@@ -63,7 +63,7 @@ try {
     try {
       save(path.join(frames, `${String(i).padStart(4, '0')}.png`), await page.evaluate(i => window.__frame(i), i));
     } catch (e) {
-      errors.push(`drawn frame ${i} (t=${(i / 12).toFixed(2)} s): ${String(e.message || e).split('\n')[0]}`);
+      errors.push(`drawn frame ${i} (t=${(i / fps).toFixed(2)} s): ${String(e.message || e).split('\n')[0]}`);
       continue;
     }
     done++;
@@ -82,10 +82,10 @@ if (only || grid) process.exit();
 
 const ff = args => execFileSync('ffmpeg', ['-v', 'error', '-y', ...args], {stdio: 'inherit'});
 const mp4 = path.join(outDir, `${name}.mp4`), sheet = path.join(outDir, `${name}-contact.jpg`);
-// drawn at 12 fps, duplicated to 24 fps: the "on twos" cadence
-ff(['-framerate', '12', '-i', path.join(frames, '%04d.png'), '-r', '24', '-pix_fmt', 'yuv420p', '-crf', '18', mp4]);
+// drawn at 12 fps and duplicated to 24 (the "on twos" cadence), or drawn at 24 when the film asked for ones
+ff(['-framerate', String(fps), '-i', path.join(frames, '%04d.png'), '-r', '24', '-pix_fmt', 'yuv420p', '-crf', '18', mp4]);
 // two tiles per second of film (every 6th drawn frame = every 12th output frame), 6 across
-const rows = Math.ceil(total / 6 / 6);
+const rows = Math.ceil(total / fps * 2 / 6);
 ff(['-i', mp4, '-vf', `select=not(mod(n\\,12)),scale=240:-1,tile=6x${rows}`, '-frames:v', '1', sheet]);
 console.log(`mp4: ${mp4}\ncontact sheet: ${sheet}`);
 if (wavFile) { const fin = path.join(outDir, `${name}-final.mp4`); ff(['-i', mp4, '-i', wavFile, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', fin]); console.log(`with sound: ${fin}`); }

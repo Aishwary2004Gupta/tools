@@ -1,6 +1,6 @@
 ---
 name: hand-drawn-canvas-animation
-description: Make a short film that looks hand-drawn or hand-printed, where every frame is drawn by JavaScript on Canvas 2D from one HTML file on top of a shared core, then rendered to mp4 with a generated Web Audio score. Five looks from one core and one palette system - ink on warm paper with hatching, riso halftone prints in fluorescent inks, flat screen prints with dot grids, graphite minimalism with torn sections, and brush-pen doodles drawn on top of cut-out photos of real objects (a shoe becomes a ship) - drawn on twos (12 fps), with blueprint interludes, ink blots, ripples, montages, badge galleries and a hand-lettered sign-off. Three engines go further than drawing on a flat frame: found motion traces real movement (Muybridge's motion studies, or the user's own video) into strokes the film redraws; sand animation runs a bed of sand on a backlit glass that a hand pours, wipes and sweeps in one take with no cuts; paper in space stands the drawn sheets up in a 3D room as a pop-up book with turning pages, rising cut-outs, light and shadow. Use when the user asks for an animation, animated explainer, "мультик", "рисованный ролик", "нарисуй анимацию кодом", a riso or screen-print look, "every frame drawn in JavaScript", doodles on photos or found objects, "дорисуй фото", sand animation, "песочная анимация", a pop-up book, a paper theatre, rotoscope, "оживи движение", "сделай из моего видео мультик", a procedural or generative short film, or a canvas video in this family of styles for any subject. Not for UI animation, charts or Remotion slide decks.
+description: Make a short film that looks hand-drawn or hand-printed, where every frame is drawn by JavaScript on Canvas 2D from one HTML file on top of a shared core, then rendered to mp4 with a generated Web Audio score. Five looks from one core and one palette system - ink on warm paper with hatching, riso halftone prints in fluorescent inks, flat screen prints with dot grids, graphite minimalism with torn sections, and brush-pen doodles drawn on top of cut-out photos of real objects (a shoe becomes a ship) - characters drawn on twos with the camera on ones, lines that wander like a hand's and bodies that are never perfect ellipses, motion from anticipation, arcs, squash and settle, with blueprint interludes, ink blots, ripples, montages, badge galleries and a hand-lettered sign-off. Three engines go further than drawing on a flat frame: found motion traces real movement (Muybridge's motion studies, or the user's own video) into strokes the film redraws; sand animation runs a bed of sand on a backlit glass that a hand pours, wipes and sweeps in one take with no cuts; paper in space stands the drawn sheets up in a 3D room as a pop-up book with turning pages, rising cut-outs, light and shadow. Use when the user asks for an animation, animated explainer, "мультик", "рисованный ролик", "нарисуй анимацию кодом", a riso or screen-print look, "every frame drawn in JavaScript", doodles on photos or found objects, "дорисуй фото", sand animation, "песочная анимация", a pop-up book, a paper theatre, rotoscope, "оживи движение", "сделай из моего видео мультик", a procedural or generative short film, or a canvas video in this family of styles for any subject. Not for UI animation, charts or Remotion slide decks.
 ---
 
 # Hand-drawn canvas animation
@@ -15,15 +15,15 @@ Look first: `assets/preview-four-looks.jpg` (one subject through the four
 looks), `assets/preview-fly-style.jpg` (a 9.5 s ink film),
 `assets/preview-held-once.jpg` and `assets/preview-night-shift.jpg` (doodles
 on museum photos, by day and by night),
-`assets/preview-template.jpg` (the template's style sheet, palette sheet and
-two demo scenes).
+`assets/preview-template.jpg` (the template: style sheet, palette sheet, a
+hop under a handheld camera, a blueprint interlude).
 
 ## Files
 
 | path | use it for |
 |---|---|
 | `assets/core.js` | the core: palettes and colour maths, four finishes, marks, lattices, motifs, reveals, photos and doodles, camera, timeline, score plumbing, player, render hooks. Copy next to every film. Never edit per film. |
-| `assets/film-template.html` | the file you copy and edit: brief, palette, a puppet, two demo scenes, score, `defineFilm`. |
+| `assets/film-template.html` | the file you copy and edit: brief, palette, a puppet built from `blob`s, a hop with anticipation, arc, squash, smear and settle under a handheld camera on ones, a blueprint interlude, score, `defineFilm` at 24 fps. |
 | `assets/roto.js`, `scripts/roto.py` | found motion. The script traces a clip's frames into vector strokes with pen widths, and the module redraws a pose with the brush. |
 | `assets/sand.js` | sand on a light table. A bed that remembers, gestures, wind, flying grains, a camera over the table. |
 | `assets/paper3d.js` | paper in space. Sheets on 3D quads, a pop-up book, shading, shadows, a travelling camera. |
@@ -41,6 +41,7 @@ two demo scenes).
 | `references/style.md` | the five looks, the 14 rules, the vocabulary table (term → look → kit call). Read before drawing anything. |
 | `references/palettes.md` | the palette schema, presets, deriving, tints and shades, finishes and plates. Read before picking colours. |
 | `references/scenes.md` | 39 scene recipes across the five looks, timing rules, score motifs. Read while writing the beat sheet. |
+| `references/motion.md` | timing: characters on twos, the camera on ones; the principles (ease, anticipation, arcs, squash and stretch, settle, overshoot, smear, moving holds) as pure functions; frame counts for a blink, a jump, a take, a hold; keys and springs. Read before animating anything that moves more than a twitch. |
 | `references/architecture.md` | file layout, invariants, the API index, puppets, riso plates, budget, rendering, pitfalls. Read before editing code. |
 | `references/found-motion.md` | where real movement comes from, how `roto.py` traces a clip, how to draw with one, what makes a story out of it. |
 | `references/sand.md` | the medium's rules, among them dark is sand and light is glass and nothing disappears, plus the gestures, camera, wind, flying grains, score. |
@@ -88,7 +89,8 @@ open the PNG and look at it.
    ```
    and look at `out/<film>-grid.jpg`: 24 evenly spaced frames of the whole
    film in a few seconds. Fix what does not read, then the next scene. Use
-   `--only` for a single frame at full size. Drawn frame index = seconds × 12.
+   `--only` for a single frame at full size. Drawn frame index = seconds × the
+   film's fps (24 in the template, 12 in the older examples).
 7. **Full render and review.** `node render.mjs <film>.html`, open
    `out/<film>-contact.jpg`, run the checklist below, fix, repeat until clean.
    Remove the sheet entries from the timeline for the final render.
@@ -105,13 +107,17 @@ Full text and reasons in `references/style.md`.
 1. `paper(c)` or `night(c)` first. Never pure black or white.
 2. Texture is a finish (`surface`), never a gradient, filter or blur on the
    final canvas. Gradients live only inside riso plates.
-3. Fill and outline never coincide: `Path2D` fill, jittered `wob` or
-   `crayon` outline.
+3. Fill and outline never coincide: a `curvePath` (or `Path2D`) fill, a
+   `wob` or `crayon` outline that wanders along its length. Bodies are
+   `blob`s, not ellipses; a long straight edge on a drawn thing goes through
+   `warp`. Legs and antennae get points along the bone, so they bend.
 4. Misregistration is an accent: `scribble` on at most two parts, two-ink
    offsets on dots and lettering only.
 5. Every drawable takes `mode`; blueprint is the same geometry in chalk.
 6. `Math.random` is banned. Everything goes through `rng(seed)`.
-7. Draw at 12 fps, output 24. `drawFrame(i)` is pure.
+7. Characters on twos, the camera on ones: `fps: 24`, the pose from
+   `twos(tau)`, camera, particles and light from `tau`. `drawFrame(i)` is
+   pure.
 8. Hard cuts. One transition device between two shots. One finish per shot.
 9. Every colour comes from `PAL`; palettes change only on cuts.
 10. Silhouettes read at 240 px; montage cards at 120 px.
@@ -120,6 +126,8 @@ Full text and reasons in `references/style.md`.
 13. A photo appears only in the doodle look, only as the subject, and only
     with a recorded source and licence. `references/doodle.md` lists where
     rules 2, 3 and 7 bend for it.
+14. Every move has an ease, an anticipation or a smear, and a settle, then a
+    hold. A jump follows an arc, a landing squashes. `references/motion.md`.
 
 ## Review checklist
 
@@ -137,7 +145,13 @@ Each item found on the contact sheet or in a spot frame is a defect:
   look allows up to three handwritten words a shot);
 - the anchor missing from a shot;
 - a literal pixel position in a scene instead of `CX`, `CY`, `W`, `H`;
-- a cue time not on the 1/12 s grid;
+- a cue time not on the 1/12 s grid (camera keys may sit anywhere);
+- a character moving on ones (reads as computer animation), or a camera that
+  steps on twos in a 24 fps film;
+- a move with no ease in or out, a stop with no settle, a jump on a straight
+  line, a landing without a squash, an action without a hold after it;
+- a perfect ellipse or a ruler-straight edge on a drawn thing (guides and
+  construction lines excepted), or a leg drawn as an angular polyline;
 - page errors printed by `render.mjs`;
 - in a doodle film, anything on the defect list at the end of
   `references/doodle.md`;

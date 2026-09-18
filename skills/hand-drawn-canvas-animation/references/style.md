@@ -44,10 +44,17 @@ These are not suggestions. If a frame breaks one, fix the frame.
    canvas, no `filter`, no `shadowBlur`. The one exception is inside a riso
    plate, where a gradient becomes dot size (`printPlate`) or a density
    function (`dotScreen`).
-3. **Nothing lines up perfectly.** Fill a shape with a `Path2D`, outline it
-   with a separately jittered polyline (`wob`, `crayon`). Fill and outline
-   must not coincide. Outline 2 to 3 px in ink and screen, crayon 3 to 5 px in
-   riso, 0.8 to 1.2 px in pencil.
+3. **Nothing lines up perfectly, and nothing is geometric.** Fill a shape with
+   a `curvePath` (or a `Path2D`), outline it with `wob` or `crayon`: a line
+   that wanders slowly along its length the way a hand does, not one that
+   shakes at every point, curved where the shape bends gently and cornered
+   where it bends hard. Fill and outline must not coincide. A body is a `blob`
+   (an ellipse with a slow variation of its radius), never `ellPath` alone; a
+   long straight edge on a drawn thing goes through `warp`; a leg or an
+   antenna has points along the bone so it bends. Outline 2 to 3 px in ink
+   and screen with `pressure` .4 to .7, crayon 3 to 5 px in riso, 0.8 to 1.2
+   px in pencil. Construction lines and guides stay ruler-straight: they are
+   the one thing in the frame that is not drawn by the hand.
 4. **Misregistration is an accent.** `scribble` on one or two parts per
    frame in the ink look; two-ink offsets in `seedDot`, `handText` and
    `signOff` everywhere. Never on backgrounds.
@@ -62,9 +69,13 @@ These are not suggestions. If a frame breaks one, fix the frame.
 8. **Seeded everything.** `rng(seed)`. `Math.random` is banned. Textures do
    not change between drawn frames of a static shot. Deliberate boil, if any,
    re-seeds outlines only, every 3 drawn frames, never the finish.
-9. **Drawn on twos.** Draw at 12 fps, output 24 fps. Idle motion is quantised
-   with `pulse(i, every)`. Camera and paths ease smoothly but are sampled on
-   the grid. In the riso montage, one card per 3 drawn frames.
+9. **Characters on twos, the camera on ones.** `defineFilm({ fps: 24 })`.
+   A character's pose comes from `twos(tau)` and holds for two frames; the
+   camera, particles, light and reveals take the continuous `tau` and glide.
+   Idle motion is quantised with `pulse(i, every)`. Every move has an ease,
+   an anticipation or a smear, and a settle, then a hold; a jump follows an
+   arc and lands in a squash. Frame counts and helpers in `motion.md`. In the
+   riso montage, one card per 3 drawn frames.
 10. **Cut hard, transition rarely.** Shots 0.8 to 2.5 s, or 0.25 s in a
     montage. Devices, in order of preference: ink blot, iris, self-drawing
     line, flicker between two renders, one-frame flash, torn section rising.

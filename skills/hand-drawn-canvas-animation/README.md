@@ -51,9 +51,20 @@ a pop-up book. They load next to the core and can be used together.
 ![Found motion, sand and paper in space](assets/preview-methods.jpg)
 
 Any of them re-colours in one line, with a preset, a preset with overrides, a
-hue-shifted derivative, or a duotone. The film is drawn at 12 fps and doubled
-to 24, the way cel animation is shot on twos. That cadence does more for the
-feel than any texture.
+hue-shifted derivative, or a duotone. The characters are drawn on twos, the
+way cel animation is shot, while the camera, particles and light run on ones.
+That cadence does more for the feel than any texture.
+
+The line is a hand's line, not a computer's: it wanders slowly along its
+length instead of shaking at every point, curves where a shape bends gently,
+keeps its corners where it bends hard, and swells and tapers under pressure.
+Bodies are blobs, not ellipses. Motion comes from a kit of pure functions of
+time: keys, springs, anticipation, arcs, squash and stretch, a settle after
+every stop, a smear on anything fast, a handheld camera through keys. The
+template's bug winds up, hops on an arc, lands in a squash and rings down
+while the camera follows.
+
+![The template: sheets, a hop, a blueprint interlude](assets/preview-template.jpg)
 
 ## Files
 
@@ -61,7 +72,7 @@ feel than any texture.
 |---|---|
 | [`SKILL.md`](SKILL.md) | the procedure the agent follows, the rules, the review checklist |
 | [`assets/core.js`](assets/core.js) | the core: colour maths and palettes, four finishes, marks, lattices, motifs, reveals, photos and doodles, camera, timeline, score plumbing, player |
-| [`assets/film-template.html`](assets/film-template.html) | the file you copy: brief, palette, a puppet, two demo scenes, score |
+| [`assets/film-template.html`](assets/film-template.html) | the file you copy: brief, palette, a puppet from blobs, a hop with anticipation, arc, squash, smear and settle under a handheld camera, a blueprint interlude, score, 24 fps |
 | [`examples/four-looks.html`](examples/four-looks.html) | a paper boat through riso, screen, pencil and ink, 13.5 s |
 | [`examples/fly-style.html`](examples/fly-style.html) | a 9.5 s ink film: peach, ink blot, dividing egg, flight through a kitchen, compound-eye view |
 | [`examples/held-once.html`](examples/held-once.html) | a 22 s doodle film on five museum photos, with its photos in `held-once-photos.js` |
@@ -76,6 +87,7 @@ feel than any texture.
 | [`references/style.md`](references/style.md) | the five looks, fourteen rules, a table from plain words to kit calls |
 | [`references/palettes.md`](references/palettes.md) | the palette schema, presets, deriving, tints and shades, finishes and riso plates |
 | [`references/scenes.md`](references/scenes.md) | thirty-nine scene recipes, timing, score motifs |
+| [`references/motion.md`](references/motion.md) | characters on twos and the camera on ones, the principles of motion as functions, frame counts for a blink, a jump, a hold, keys and springs |
 | [`references/architecture.md`](references/architecture.md) | file layout, API index, how to build a character, riso plates, pitfalls |
 | [`references/found-motion.md`](references/found-motion.md) | sources of real movement, how to trace a clip and draw with one |
 | [`references/sand.md`](references/sand.md) | the rules of the sand table, its gestures, camera, wind and score |
