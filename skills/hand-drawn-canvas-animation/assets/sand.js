@@ -75,7 +75,7 @@ function _wipe(x, y, r, dx, dy, strength, streaks, keep = 1) { const N = SAND.N,
 function _blow(g, dt) { const N = SAND.N, h = SAND.h, k = N / SAND.world, bx0 = Math.max(1, Math.floor(g.box[0] * k)), by0 = Math.max(1, Math.floor(g.box[1] * k)), bx1 = Math.min(N - 2, Math.ceil(g.box[2] * k)), by1 = Math.min(N - 2, Math.ceil(g.box[3] * k));
   const dx = g.vx * k * dt, dy = g.vy * k * dt, sx = dx >= 0 ? -1 : 1, s = g.strength, lift = g.lift, tb = g.turb, st = SAND.streak;
   for (let j = by0; j <= by1; j++) { const i0 = sx < 0 ? bx1 : bx0, i1 = sx < 0 ? bx0 : bx1;
-    for (let i = i0; sx < 0 ? i >= i1 : i <= i1; i -= sx) { const p = j * N + i, hv = h[p]; if (hv < .05) continue;
+    for (let i = i0; sx < 0 ? i >= i1 : i <= i1; i += sx) { const p = j * N + i, hv = h[p]; if (hv < .05) continue;
       const tu = st[(i * 7 + j * 13 + (SAND.k * 3)) & 4095], take = Math.min(hv, lift) * s * (.55 + .9 * tu); if (take < .01) continue;
       const ti = Math.round(i + dx * (.7 + .6 * tu)), tj = Math.round(j + dy * (.7 + .6 * tu) + (tu - .5) * tb * 4);
       h[p] -= take; if (ti >= 0 && tj >= 0 && ti < N && tj < N) h[tj * N + ti] += take; } } }
@@ -111,12 +111,14 @@ function sandImage(w = OUT_W, h = OUT_H, live = null) { const T = _sandTextures(
   return T.img; }
 function sandRender(c, live = null) { const img = sandImage(OUT_W, OUT_H, live); c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.putImageData(img, 0, 0); c.restore(); }
 // sandLive: rasterise closed polygons (world units) into the clear and ridge masks at bed resolution.
-// lines = [{ p: [[x, y], ...], w }] are drawn in heaped sand inside the shape (the pen strokes of a roto pose).
+// lines = [{ p, w }] are drawn in heaped sand inside the shape (the pen strokes of a roto pose), heap = polygons filled
+// with heaped sand (a bird in the air, made of the same sand as everything else).
 let _liveA = null, _liveB = null;
-function sandLive(polys, ridgeW = 9, lines = null) { const N = SAND.N, k = N / SAND.world; if (!_liveA) { _liveA = document.createElement('canvas'); _liveB = document.createElement('canvas'); _liveA.width = _liveA.height = _liveB.width = _liveB.height = N; }
+function sandLive(polys, ridgeW = 9, lines = null, heap = null) { const N = SAND.N, k = N / SAND.world; if (!_liveA) { _liveA = document.createElement('canvas'); _liveB = document.createElement('canvas'); _liveA.width = _liveA.height = _liveB.width = _liveB.height = N; }
   const path = new Path2D(); for (const pl of polys) { pl.forEach((q, i) => i ? path.lineTo(q[0] * k, q[1] * k) : path.moveTo(q[0] * k, q[1] * k)); path.closePath(); }
   const ga = _liveA.getContext('2d', { willReadFrequently: true }), gb = _liveB.getContext('2d', { willReadFrequently: true }); ga.clearRect(0, 0, N, N); ga.fillStyle = '#fff'; ga.fill(path, 'evenodd'); gb.clearRect(0, 0, N, N); gb.strokeStyle = '#fff'; gb.lineWidth = ridgeW * k; gb.lineJoin = 'round'; gb.lineCap = 'round'; gb.stroke(path);
   if (lines) for (const l of lines) { gb.lineWidth = Math.max(1.2, l.w * k); gb.beginPath(); l.p.forEach((q, i) => i ? gb.lineTo(q[0] * k, q[1] * k) : gb.moveTo(q[0] * k, q[1] * k)); gb.stroke(); }
+  if (heap) { gb.fillStyle = '#fff'; for (const pl of heap) { gb.beginPath(); pl.forEach((q, i) => i ? gb.lineTo(q[0] * k, q[1] * k) : gb.moveTo(q[0] * k, q[1] * k)); gb.closePath(); gb.fill(); } }
   const A = ga.getImageData(0, 0, N, N).data, B = gb.getImageData(0, 0, N, N).data, clear = new Uint8Array(N * N), ridge = new Uint8Array(N * N); for (let p = 0; p < N * N; p++) { clear[p] = A[p * 4 + 3]; ridge[p] = B[p * 4 + 3]; } return { clear, ridge }; }
 
 // ---------- what flies over the bed ----------
@@ -129,11 +131,11 @@ function sandAir(c, t) { if (!SAND.air.length) return; const s = sandScale(); c.
 
 // ---------- the hand: a soft shadow that does the work ----------
 let _handCv = null;
-function _handState(t) { const gs = SAND.gestures.filter(g => g.hand !== null && g.hand !== undefined); let act = null; for (const g of gs) if (t >= g.t0 && t <= g.t1) { act = g; break; }
+function _handState(t) { const gs = SAND.gestures.filter(g => g.hand !== null); let act = null; for (const g of gs) if (t >= g.t0 && t <= g.t1) { act = g; break; }
   const at = g => { const q = sandPoint(g.path, g.ease(clamp((t - g.t0) / (g.t1 - g.t0), 0, 1)) * g.path.len); return [q[0], q[1]]; };
   if (act) return { p: at(act), lift: act.hover ? .55 : 0, kind: act.hand || (act.hover ? 'fist' : 'finger'), a: 1 };
   let prev = null, next = null; for (const g of gs) { if (g.t1 < t) prev = g; else if (g.t0 > t) { next = g; break; } }
-  const rest = [SAND.world + 260, SAND.world + 320], pe = prev ? sandPoint(prev.path, prev.path.len) : rest, ns = next ? sandPoint(next.path, 0) : rest, dtp = prev ? t - prev.t1 : 9, dtn = next ? next.t0 - t : 9, gap = prev && next ? next.t0 - prev.t1 : 9;
+  const RV = sandViewRect(), rest = [RV.x + RV.w * .85, RV.y + RV.h * .95], pe = prev ? sandPoint(prev.path, prev.path.len) : rest, ns = next ? sandPoint(next.path, 0) : rest, dtp = prev ? t - prev.t1 : 9, dtn = next ? next.t0 - t : 9, gap = prev && next ? next.t0 - prev.t1 : 9;
   if (gap < 1.2) { const u = easeIO(dtp / gap); return { p: [lerp(pe[0], ns[0], u), lerp(pe[1], ns[1], u)], lift: .8 * Math.sin(u * Math.PI) + .1, kind: next.hand || 'fist', a: 1 }; }
   if (dtn < .6) { const u = easeOut(1 - dtn / .6); return { p: [lerp(rest[0], ns[0], u), lerp(rest[1], ns[1], u)], lift: 1 - u * .6, kind: next.hand || 'fist', a: u }; }
   if (dtp < .6) { const u = easeIn(dtp / .6); return { p: [lerp(pe[0], rest[0], u), lerp(pe[1], rest[1], u)], lift: .3 + u * .7, kind: prev.hand || 'fist', a: 1 - u }; }

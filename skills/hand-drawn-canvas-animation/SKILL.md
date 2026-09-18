@@ -31,6 +31,7 @@ two demo scenes).
 | `examples/fly-style.html` | a 9.5 s ink film: peach, ink blot, dividing egg, camera-follow flight, compound-eye mosaic. Read it for recipes A to H. |
 | `examples/held-once.html`, `examples/held-once-photos.js` | a 22 s doodle film on five CC0 museum photos. A teapot tips, a watch gets a drawn hand, a violin sails, a lantern is lit at night, two hedgehogs sit inside a cup. Read it before any doodle film. |
 | `examples/gallop.html`, `examples/gallop-clips.js` | 34.5 s of found motion. Muybridge's question about the gallop, 12 cameras, the airborne frame, a zoopraxiscope disc that spins up until the horse runs, a parade of elephant, kangaroo and pigeons. |
+| `examples/one-seed.html` | 40 s of sand at its full range. A camera over a table three times wider than the frame, from one grain to a forest; wind that carries a crown away, rain, falling leaves and snow, the lamp changing colour with the seasons, Muybridge's pigeons made of sand. Read it for anything ambitious in sand. |
 | `examples/one-year.html` | 39.5 s of sand in one take, a tree through its year, swept clean, and two words poured at the end. |
 | `examples/moon-book.html` | 29 s pop-up book with a forest spread, a tower of museum things, the room going dark and the paper moon lighting up. |
 | `examples/paper-horse.html` | 47 s with all three engines at once. A book whose page is a light table the camera dives into, a paper horse with a real gallop, an escape onto the desk. |

@@ -67,6 +67,7 @@ feel than any texture.
 | [`examples/held-once.html`](examples/held-once.html) | a 22 s doodle film on five museum photos, with its photos in `held-once-photos.js` |
 | [`examples/night-shift.html`](examples/night-shift.html) | a 31 s chase at night on nine museum photos: moving light, runners on the real edge of a violin, a camera that follows and whips on the cuts |
 | [`examples/gallop.html`](examples/gallop.html) | 34.5 s of found motion. Muybridge's 1878 question, the airborne frame, a disc that spins up until the horse runs |
+| [`examples/one-seed.html`](examples/one-seed.html) | 40 s of sand at full range: a camera over the table from one grain to a forest, wind, rain, snow, seasons in the lamp |
 | [`examples/one-year.html`](examples/one-year.html) | 39.5 s of sand in one take, a tree through its year |
 | [`examples/moon-book.html`](examples/moon-book.html) | a 29 s pop-up book with a paper moon that lights up |
 | [`examples/paper-horse.html`](examples/paper-horse.html) | 47 s with all three engines. A book whose page is a light table, and a horse that runs out of it |

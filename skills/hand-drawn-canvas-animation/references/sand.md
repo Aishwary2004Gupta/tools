@@ -7,8 +7,10 @@ combs it, and wind blows it sideways. Sand pushed aside piles into ridges beside
 the stroke and slumps into cones. One picture becomes the next without a cut,
 because it is made out of the one before it.
 
-Worked examples: `examples/one-year.html` (a tree through its year, one take)
-and `examples/paper-horse.html` (a page of a book that is a light table).
+Worked examples: `examples/one-seed.html` (everything the medium does: a camera
+over a table wider than the frame, wind, rain, snow, seasons in the lamp),
+`examples/one-year.html` (the plain case, one take at a fixed camera) and
+`examples/paper-horse.html` (a page of a book that is a light table).
 
 Read this file whenever the brief says sand, sand animation, a hand drawing in
 something, one continuous take, or a film with no cuts at all.
@@ -86,6 +88,12 @@ examples carry a little single-stroke alphabet, copy it.
 The camera makes the medium cinematic, and it is the one thing to plan first. A
 push from a whole table down to a 300-unit window costs nothing and turns a flat
 drawing into a shot.
+
+Wind takes the top layer only, so its strength has to be small or it eats the
+drawing: `strength: .08` with `lift: .85` thins a sprinkled crown over two
+seconds and leaves the poured branches standing, while `strength: .4` strips the
+whole tree. A second, faster wind in the empty air above carries what the first
+one lifted, and that is what reads as a gust.
 
 ## Score
 
