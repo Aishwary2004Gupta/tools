@@ -111,7 +111,7 @@ const GEST = [
   [[1620, 520], [760, 590], [1930, 400], [430, 470], [2560, 560], [1150, 640], [2830, 430], [180, 360], [1400, 300]].map(([x, h], k) => growTree(32.9 + k * .27, x, h, { dur: 2.1, hand: null })),
   [[300, 1886], [980, 1892], [1760, 1884], [2400, 1894], [2760, 1888], [620, 1898]].map(([x, y], k) => P(35.0 + k * .1, 35.1 + k * .1, [[x, y], [x + 16, y - 40], [x + 40, y - 16], [x + 62, y - 46]], { r: 4, amount: 2.2 }, null)),
   // two words
-  word('one seed', 35.6, 2.4, 830, 560, 210, 12),
+  word('one seed', 34.7, 1.8, 830, 560, 210, 12),
 ];
 sandFilm({ gestures: GEST, N: 1300, world: WORLD });
 
@@ -130,12 +130,12 @@ function birds(tau, i) { const heap = [];
 // the card the hand leaves on the glass at the end
 const tfm = (x, y, rot) => (px, py) => { const ca = Math.cos(rot), sa = Math.sin(rot); return [x + px * ca - py * sa, y + px * sa + py * ca]; };
 const dot = (d, x, y, r, col) => d.mark((c, k) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r * k, 0, TAU); c.fill(); }, .05);
-function card(c, tau, i) { const t0 = 38.5; if (tau < t0) return; usePalette(makePalette({ ink: '#2a1a0c', accents: ['#a8341f', '#2f6db0', '#e0a526', '#4c9a6a'] }, 'doodlePastel'));
+function card(c, tau, i) { const t0 = 36.9; if (tau < t0) return; usePalette(makePalette({ ink: '#2a1a0c', accents: ['#a8341f', '#2f6db0', '#e0a526', '#4c9a6a'] }, 'doodlePastel'));
   const drop = easeOut(sm(t0, t0 + .3, tau, t => t)), T2 = tfm(770, 940 + (1 - drop) * 34, -.045 + (1 - drop) * .07), M2 = pts => pts.map(p => T2(p[0], p[1])), crd = M2([[-222, -66], [222, -66], [222, 66], [-222, 66]]), X = (u, v) => T2(-162 + u * 68, v * 68);
   c.save(); c.globalAlpha = .34 * drop; c.fillStyle = '#1a0d05'; c.fill(polyPath(M2([[-214, -56], [232, -56], [232, 78], [-214, 78]]))); c.restore();
   c.save(); c.globalAlpha = drop; c.fillStyle = '#eddcb8'; c.fill(polyPath(crd)); c.restore();
-  pen(c, tau, i, t0 + .3, 61, d => { d.line(crd, { close: true, w: 3, smooth: false, speed: 2600 }).line([X(-.5, -.5), X(-.2, -.5), X(.5, .5), X(.2, .5)], { close: true, w: 3.6, smooth: false, speed: 900 }).line([X(.46, -.5), X(.07, -.06)], { w: 3.6 }).line([X(-.07, .06), X(-.46, .5)], { w: 3.6 });
-    dot(d, ...T2(0, -50), 5.5, PAL.accents[0]); d.mark((c, k) => { c.save(); c.translate(...T2(-108, 19)); c.rotate(-.045); handText(c, HANDLE.slice(0, Math.ceil(HANDLE.length * k)), 0, 0, { size: 53, ink: PAL.ink, ink2: null }); c.restore(); }, .55); }, { still: true }); }
+  pen(c, tau, i, t0 + .28, 61, d => { d.line(crd, { close: true, w: 3, smooth: false, speed: 4200 }).line([X(-.5, -.5), X(-.2, -.5), X(.5, .5), X(.2, .5)], { close: true, w: 3.6, smooth: false, speed: 1500 }).line([X(.46, -.5), X(.07, -.06)], { w: 3.6 }).line([X(-.07, .06), X(-.46, .5)], { w: 3.6 });
+    dot(d, ...T2(0, -50), 5.5, PAL.accents[0]); d.mark((c, k) => { c.save(); c.translate(...T2(-108, 19)); c.rotate(-.045); handText(c, HANDLE.slice(0, Math.ceil(HANDLE.length * k)), 0, 0, { size: 53, ink: PAL.ink, ink2: null }); c.restore(); }, .42); }, { still: true }); }
 
 function film(c, tau, i) { const v = key(tau, CAM); sandLook(v[0], v[1], v[2]); let t = key(tau, TINT);
   for (const [a, b] of FLASH) if (tau >= a && tau <= b) { const k = 1 - (tau - a) / (b - a); t = [lerp(t[0], 1.85, k), lerp(t[1], 1.78, k), lerp(t[2], 1.66, k)]; }
@@ -159,8 +159,8 @@ function score(ac, t0, dest) { const master = ac.createGain(); master.gain.value
   for (let k = 0; k < 10; k++) key2(24.6 + k * .28, hz(2 + (k % 2), (k * 3) % 5), .05, 1.4);                                    // snow
   [[27.4, 1, 0], [28.2, 1, 2], [29.2, 1, 4], [30.2, 2, 0], [31.2, 2, 2]].forEach(([t, o, s]) => key2(t, hz(o, s), .16, 2.6));
   for (let k = 0; k < 20; k++) { const t = 31.9 + k * .19; key2(t, hz(1 + Math.floor(k / 7), [0, 2, 4, 2, 3, 4, 2][k % 7]), .11 + k * .004, 1.8); }      // the forest rising
-  [[35.4, 0, 0], [35.4, 1, 0], [35.4, 1, 2], [35.4, 1, 4], [35.4, 2, 0]].forEach(([t, o, s]) => key2(t, hz(o, s), .15, 4.2));
-  [[37.0, 2, 2], [37.8, 2, 4], [38.6, 3, 0]].forEach(([t, o, s]) => key2(t, hz(o, s), .14, 3)); [[39.0, 0, 0], [39.0, 1, 2], [39.0, 2, 0]].forEach(([t, o, s]) => key2(t, hz(o, s), .13, 3.4)); }
+  [[34.6, 0, 0], [34.6, 1, 0], [34.6, 1, 2], [34.6, 1, 4], [34.6, 2, 0]].forEach(([t, o, s]) => key2(t, hz(o, s), .15, 4.2));
+  [[36.4, 2, 2], [37.1, 2, 4], [37.8, 3, 0]].forEach(([t, o, s]) => key2(t, hz(o, s), .14, 3)); [[38.4, 0, 0], [38.4, 1, 2], [38.4, 2, 0]].forEach(([t, o, s]) => key2(t, hz(o, s), .13, 2.6)); }
 
 defineFilm({ timeline: [{ name: 'sand', dur: 40, fn: film }], score, format: { ar: '1:1' } });
 </script>

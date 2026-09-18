@@ -140,7 +140,10 @@ Each item found on the contact sheet or in a spot frame is a defect:
 - a cue time not on the 1/12 s grid;
 - page errors printed by `render.mjs`;
 - in a doodle film, anything on the defect list at the end of
-  `references/doodle.md`.
+  `references/doodle.md`;
+- a closing card or handle that is still being written in the last frame: it
+  must be complete at least 1.5 s before the end, or it gets cut when the film
+  loops on a feed.
 
 ## The three engines
 
