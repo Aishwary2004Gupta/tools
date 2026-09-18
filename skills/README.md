@@ -6,7 +6,7 @@ scripts and references that file points to.
 
 | skill | what it does |
 |---|---|
-| [`hand-drawn-canvas-animation`](hand-drawn-canvas-animation) | short films that look hand-drawn or hand-printed, every frame drawn by JavaScript on Canvas 2D; one core, a palette system and five looks (ink, riso, screen print, pencil, doodles on cut-out photos), rendered to mp4 with a generated score |
+| [`hand-drawn-canvas-animation`](hand-drawn-canvas-animation) | drawn films in JavaScript and Canvas 2D, with authored poses, five material styles, sand, paper unfolding and a complete 60-second phoenix example. Includes an MP4 renderer, original sound and browser checks |
 
 Install one by copying its folder into `~/.agents/skills/`, or into
 `.agents/skills/` inside a project.

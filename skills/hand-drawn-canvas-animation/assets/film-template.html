@@ -10,6 +10,8 @@
 </style>
 <canvas id="c" width="1080" height="1080"></canvas>
 <script src="core.js"></script>
+<script src="studio.js"></script>
+<script src="materials.js"></script>
 <script>
 'use strict';
 // ============================================================
@@ -28,7 +30,7 @@
 
 // ===================== BRIEF & BEAT SHEET =====================
 // Subject: <one sentence>
-// Format: <1:1 | 16:9 | 9:16>, short side 1080 logical units. fps: 24 (camera on ones, characters on twos through twos(tau)).
+// Format: <1:1 | 16:9 | 9:16>, short side 1080 logical units. fps: 24; exposure follows each action (camera sampled independently).
 // Draw relative to CX, CY, W, H so any format works.
 // t     dur   scene        camera            what changes                                          kit                                  sound
 // 0.0   1.0   stylesheet   -                 check palette and finish                              styleSheet                           -
@@ -46,9 +48,9 @@ usePalette('paperInk');
 // A scene may switch palettes at its top (usePalette(...)) when the film changes look between shots.
 
 // ===================== PUPPET =====================
-// A character = parts as point lists in LOCAL coords (origin = body centre, facing up = -y), made with blob() so no part is a perfect
-// ellipse, a Path2D per part from curvePath() for the fill, and the same points through wob() for the outline (the two never coincide).
-// Pose = a few numbers. One draw function with an ink/blueprint switch. Fill -> surface() -> outline; surface() follows PAL.finish.
+// Legacy rig demonstration: local part geometry, fills and separately varied outlines.
+// For the default redrawn character approach see examples/sketchbook-bird.html and references/redrawn-animation.md.
+// This introductory puppet uses a few controls; production actors may need more. One draw function with an ink/blueprint switch. Fill -> surface() -> outline; surface() follows PAL.finish.
 const BUG_ARGS = { body: [0, 10, 42, 64], head: [0, -70, 28, 28] };
 const BUG_PTS = { body: blob(...BUG_ARGS.body, 3, { amp: .05 }), head: blob(...BUG_ARGS.head, 4, { amp: .07 }) };
 const BUG = { body: curvePath(BUG_PTS.body), head: curvePath(BUG_PTS.head), eyeL: ellPath(-14, -76, 10, 12, -.3), eyeR: ellPath(14, -76, 10, 12, .3) };
@@ -73,6 +75,7 @@ function drawBug(c, mode, pose, seed) {
 // ===================== SCENES =====================
 // Each scene is (c, tau, i): tau = seconds since the scene started (continuous in a 24 fps film), i = global frame on the 12 fps grid.
 // The hop, as pure functions of time. Every number that moves comes from here, so the blueprint scene can ask for the same pose.
+const bugExposure = exposureTrack([{at:0,on:2},{at:34/24,on:1},{at:54/24,on:2}]);
 const HOP = { t0: 1.1, t1: 1.45, t2: 2.05, from: [-150, 40], to: [130, 40], lift: 170 };   // sit, wind up, fly, land
 function bugAt(t) {                                       // t = seconds into the hop scene, already on twos
   const { t0, t1, t2, from, to, lift } = HOP, air = sm(t1, t2, t, u => u);           // linear in time across the arc: the parabola supplies the ease
@@ -92,8 +95,8 @@ function sceneHop(c, tau, i) {
   surface(c, ground, gbox, { seed: 21, color: PAL.light, density: .25, gap: 6, len: 16, alpha: .5, width: 1.4, grain: 0 });
   surface(c, circPath(CX + 260, CY + 900, 600), [CX - 340, CY + 300, 1200, 1200], { seed: 22, color: PAL.blush, density: .45, gap: 5, len: 18, alpha: .35, grain: 6000 });
   c.strokeStyle = PAL.ink; c.lineWidth = 3; c.globalAlpha = .85; wob(c, ellPts(CX, CY + 800, 800, 800, 0, 120), 2.5, 24, true, { pressure: .3 }); c.globalAlpha = 1;
-  const b = bugAt(twos(tau)), pose = { walk: 0, twitch: pulse(i, 8) ? 1 : 0, tuck: b.tuck, blink: pulse(i + 5, 31, 2) ? 1 : 0 };   // the character is on twos; the camera above was not
-  const put = (cc, dt) => { const q = dt ? bugAt(twos(tau) + dt) : b; cc.save(); cc.translate(q.x, q.y + 100); cc.rotate(-.12 + q.lean); cc.scale(...squash(q.sq).map(v => v * 1.6)); cc.translate(0, -62); drawBug(cc, 'ink', pose, 26); cc.restore(); };   // scaled about the feet
+  const b = bugAt(bugExposure(tau)), pose = { walk: 0, twitch: pulse(i, 8) ? 1 : 0, tuck: b.tuck, blink: pulse(i + 5, 31, 2) ? 1 : 0 };   // the jump uses ones; the surrounding holds use twos
+  const put = (cc, dt) => { const q = dt ? bugAt(bugExposure(tau) + dt) : b; cc.save(); cc.translate(q.x, q.y + 100); cc.rotate(-.12 + q.lean); cc.scale(...squash(q.sq).map(v => v * 1.6)); cc.translate(0, -62); drawBug(cc, 'ink', pose, 26); cc.restore(); };   // scaled about the feet
   if (!b.air) construction(c, b.x, b.y, 110, 25);
   if (b.air) smear(c, 2, .08, dt => put(c, dt)); else put(c, 0);
 }

@@ -41,14 +41,14 @@ cd minimax-h3 && ./install/setup.sh check
 Agent skills that stand on their own.
 
 **[hand-drawn-canvas-animation](skills/hand-drawn-canvas-animation)** makes short
-films that look hand-drawn or hand-printed, with every frame drawn by
-JavaScript on a plain Canvas 2D. One HTML file on a shared core, no libraries
-and no video model. Five looks from one palette system: ink on warm paper, riso
-halftone prints, flat screen prints, graphite minimalism, and brush-pen doodles
-on cut-out photos of real objects, each re-colourable in one line. It ships the
-core, a template, four worked films, a renderer that turns a file into an mp4
-with sound and a contact sheet, a photo cutter, and the rules an agent needs to
-keep a look consistent.
+films with authored poses and expressive strokes in JavaScript and Canvas 2D.
+It covers pencil, ink, risograph, screen print and drawings interacting with
+real photos, plus sand animation and projected paper. The
+[60-second phoenix film](skills/hand-drawn-canvas-animation/examples/becoming-phoenix/)
+combines the materials through one story, including a moving storm and wings
+that unfold from a book. The skill includes editable examples, original sound,
+an MP4 renderer and browser regression checks. No Blender or video-generation
+model is required.
 
 ```bash
 cp -r skills/hand-drawn-canvas-animation ~/.agents/skills/

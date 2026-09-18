@@ -6,8 +6,8 @@
 // lattices, reveals, photos with doodles on them, camera, timeline, score
 // plumbing and the player.
 //
-// A film is an HTML file that loads this script, then defines puppets,
-// scenes and a timeline and calls defineFilm({...}). See film-template.html.
+// A film is an HTML file that loads this script, then defines drawings,
+// scenes and a timeline and calls defineFilm({...}). See examples/sketchbook-bird.html.
 //
 // Sections: CONFIG · COLOUR · PALETTES · RANDOM, EASING & MOTION · GEOMETRY ·
 // MARKS · FINISHES · LATTICES & PARTICLES · MOTIFS · REVEALS & COMPOSITION ·
@@ -19,17 +19,17 @@
 // Scenes draw in logical units. S scales them to the output width chosen at render time.
 const SHORT = 1080;
 let W = 1080, H = 1080, S = 1, CX = 540, CY = 540, OUT_W = 1080, OUT_H = 1080;
-const _layers = [];   // every layer() canvas, resized when the format changes
+const _layers = [];   // weak registrations: live layers resize; transient print plates can be collected
 function setFormat({ ar = '1:1', width } = {}) {
   const [a, b] = String(ar).split(/[:x\/]/).map(Number); const r = (a > 0 && b > 0) ? a / b : 1;
   if (r >= 1) { H = SHORT; W = Math.round(SHORT * r); } else { W = SHORT; H = Math.round(SHORT / r); }
   S = width ? width / W : 1; OUT_H = 2 * Math.round(H * S / 2); S = OUT_H / H; OUT_W = 2 * Math.round(W * S / 2);
   CX = W / 2; CY = H / 2;
-  for (const L of _layers) { L.o.width = Math.round(L.w * S); L.o.height = Math.round(L.h * S); }   // layers made at file scope follow the format
+  for (let i = _layers.length - 1; i >= 0; i--) { const L = _layers[i], o = L.ref.deref(); if (!o) { _layers.splice(i, 1); continue; } o.width = Math.round((L.w ?? W) * S); o.height = Math.round((L.h ?? H) * S); }   // layers made at file scope follow the format
   return { W, H, S, OUT_W, OUT_H };
 }
 { const q = new URLSearchParams(location.search); if (q.has('ar') || q.has('w')) setFormat({ ar: q.get('ar') || '1:1', width: +q.get('w') || undefined }); }
-let FPS_DRAW = 12; const FPS_OUT = 24;      // drawn frames per second (12 = everything on twos; defineFilm({ fps: 24 }) puts the camera on ones), packed to 24 fps
+let FPS_DRAW = 24; const FPS_OUT = 24;      // drawn frames per second (12 = everything on twos; defineFilm({ fps: 24 }) puts the camera on ones), packed to 24 fps
 const TAU = Math.PI * 2;
 const HAND_FONT = '"Bradley Hand", "Segoe Script", "Chalkboard", "Comic Sans MS", cursive';
 
@@ -178,7 +178,7 @@ const squash = k => [1 / (1 + k), 1 + k];
 const breathe = (t, period = 2.6, phase = 0) => { const u = ((t / period + phase) % 1 + 1) % 1; return u < .4 ? Math.sin(u / .4 * Math.PI / 2) : Math.cos((u - .4) / .6 * Math.PI / 2); };
 
 // ===================== GEOMETRY =====================
-// Fill with a Path2D, outline with a jittered polyline: the two must not coincide.
+// Path geometry for authored fills and strokes. Registration is a material choice.
 function ellPts(cx, cy, rx, ry, rot = 0, n = 44) { const p = []; for (let i = 0; i < n; i++) { const a = i / n * TAU, x = rx * Math.cos(a), y = ry * Math.sin(a); p.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]); } return p; }
 function ellPath(cx, cy, rx, ry, rot = 0) { const p = new Path2D(); p.ellipse(cx, cy, rx, ry, rot, 0, TAU); return p; }
 function circPath(cx, cy, r) { return ellPath(cx, cy, r, r); }
@@ -195,7 +195,7 @@ function smoothPts(pts, close = false, step = 4, corner = .8) { const n = pts.le
   for (let i = 0; i < segs; i++) { const p1 = P(i), p2 = P(i + 1), c1 = sharp[i % n], c2 = sharp[(i + 1) % n], p0 = c1 ? [2 * p1[0] - p2[0], 2 * p1[1] - p2[1]] : P(i - 1), p3 = c2 ? [2 * p2[0] - p1[0], 2 * p2[1] - p1[1]] : P(i + 2), m = Math.max(1, Math.round(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / step));
     for (let k = 0; k < m; k++) { const t = k / m, t2 = t * t, t3 = t2 * t; out.push([.5 * (2 * p1[0] + (p2[0] - p0[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (3 * p1[0] - p0[0] - 3 * p2[0] + p3[0]) * t3), .5 * (2 * p1[1] + (p2[1] - p0[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (3 * p1[1] - p0[1] - 3 * p2[1] + p3[1]) * t3)]); } }
   if (!close) out.push(pts[n - 1].slice()); return out; }
-// curvePath: a smooth Path2D through points, corners kept. The fill of an organic part; outline the same points with wob and the two never coincide.
+// curvePath: a smooth Path2D through points, preserving authored sharp corners.
 const curvePath = (pts, close = true, corner = .8) => polyPath(smoothPts(pts, close, 3, corner), close);
 // warp: bend any outline with slow noise, amp in px. Long edges are subdivided first so the bow shows. A rectangle that is not quite one, a horizon, a shelf.
 function warp(pts, seed = 1, amp = 4, close = true, step = 24) { const n = pts.length, out = [], segs = close ? n : n - 1; for (let i = 0; i < segs; i++) { const a = pts[i], b = pts[(i + 1) % n], m = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / step)); for (let k = 0; k < m; k++) out.push([lerp(a[0], b[0], k / m), lerp(a[1], b[1], k / m)]); } if (!close) out.push(pts[n - 1].slice());
@@ -203,7 +203,7 @@ function warp(pts, seed = 1, amp = 4, close = true, step = 24) { const n = pts.l
 const rectPts = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
 function pathLength(pts, close) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (close) L += Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]); return L; }
 function bez(p0, p1, p2, p3, t) { const u = 1 - t; return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]; }
-function layer(w, h) { const full = w === undefined; w = w ?? W; h = h ?? H; const o = document.createElement('canvas'); o.width = Math.round(w * S); o.height = Math.round(h * S); if (full) _layers.push({ o, get w() { return W; }, get h() { return H; } }); else _layers.push({ o, w, h }); return o; }   // output pixels, logical size w x h
+function layer(w, h) { const full = w === undefined; w = w ?? W; h = h ?? H; const o = document.createElement('canvas'); o.width = Math.round(w * S); o.height = Math.round(h * S); _layers.push({ ref: new WeakRef(o), w: full ? null : w, h: full ? null : h }); return o; }   // output pixels, logical size w x h
 function cam(c, x, y, zoom, rot = 0) { c.setTransform(S, 0, 0, S, 0, 0); c.translate(W / 2, H / 2); c.scale(zoom, zoom); c.rotate(rot); c.translate(-x, -y); }
 const resetT = c => c.setTransform(S, 0, 0, S, 0, 0);   // identity in logical units
 // camKeys: a camera through keys [[t, x, y, zoom, rot?], ...] on a smooth curve, eased over the whole move, with an optional handheld drift (hand = px).
@@ -294,24 +294,24 @@ function dotScreen(c, path, box, o = {}) {
 }
 // plate + printPlate: real colour separations. Draw each ink's coverage in black on a white plate, then print
 // the plates in order with multiply blending. Overlaps mix like ink on paper. This is the flipbook's whole look.
-function plate() { const L = layer(); const g = L.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); return L; }
+function plate() { const L = layer(); const g = L.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, L.width, L.height); resetT(g); return L; }
 const _cov = document.createElement('canvas');
 function printPlate(c, src, o = {}) {
-  const { cell = 7, ink = PAL.inks[0], angle = .26, jitter = .2, seed = 1, gain = 1, maxCov = .78, blend = 'multiply', al = .95 } = o; const r = rng(seed);
+  const { cell = 7, ink = PAL.inks[0], angle = .26, jitter = .2, seed = 1, gain = 1, maxCov = .78, blend = 'multiply', al = .95, offset = [0, 0], rotation = 0, mottling = 0 } = o; const r = rng(seed);
   const sw = Math.ceil(W / cell), sh = Math.ceil(H / cell); _cov.width = sw; _cov.height = sh; const g = _cov.getContext('2d'); g.drawImage(src, 0, 0, sw, sh); const d = g.getImageData(0, 0, sw, sh).data;
-  c.save(); resetT(c); c.globalCompositeOperation = blend; c.globalAlpha = al; c.fillStyle = ink; c.beginPath();
+  c.save(); resetT(c); c.globalCompositeOperation = blend; c.globalAlpha *= al; c.fillStyle = ink; c.translate(W / 2 + offset[0], H / 2 + offset[1]); c.rotate(rotation); c.translate(-W / 2, -H / 2); c.beginPath();
   const R = Math.hypot(W, H) / 2, ca = Math.cos(angle), sa = Math.sin(angle);
   for (let v = -R; v <= R; v += cell) for (let u = -R; u <= R; u += cell) { const x = W / 2 + ca * u - sa * v + (r() - .5) * jitter * cell, y = H / 2 + sa * u + ca * v + (r() - .5) * jitter * cell;
-    if (x < 0 || y < 0 || x >= W || y >= H) continue; const k = ((y / cell | 0) * sw + (x / cell | 0)) * 4; const cov = clamp((1 - (d[k] * .299 + d[k + 1] * .587 + d[k + 2] * .114) / 255) * gain, 0, maxCov);
+    if (x < 0 || y < 0 || x >= W || y >= H) continue; const k = ((y / cell | 0) * sw + (x / cell | 0)) * 4; const cov = clamp((1 - (d[k] * .299 + d[k + 1] * .587 + d[k + 2] * .114) / 255) * (d[k + 3] / 255) * gain * (1 - mottling * (.5 + .5 * noise1(x / 85 + y / 130, seed))), 0, maxCov);
     if (cov < .03) continue; const rad = cell * .62 * Math.sqrt(cov); c.moveTo(x + rad, y); c.arc(x, y, rad, 0, TAU); }
   c.fill(); c.restore();
 }
 // paper: fills the frame with paper colour, optional light bands, and stock grain. Resets the transform.
-function paper(c, base = PAL.paper, band = PAL.paperBand, seed = 5) { resetT(c); c.fillStyle = base; c.fillRect(0, 0, W, H);
+function paper(c, base = PAL.paper, band = PAL.paperBand, seed = 5) { resetT(c); c.fillStyle = base; c.fillRect(0, 0, c.canvas.width / S, c.canvas.height / S);
   if (band) { c.save(); c.translate(W / 2, H / 2); c.rotate(-Math.PI / 4); c.fillStyle = band; for (let i = -6; i <= 6; i++) c.fillRect(-1200, i * 160 - 40, 2400, 80); c.restore(); }
   grain(c, rectPath(0, 0, W, H), [0, 0, W, H], 1400, shade(base, .5), .06, seed, 1.6); }
 // night: dark background with star speckle
-function night(c, base = PAL.night, seed = 5) { resetT(c); c.fillStyle = base; c.fillRect(0, 0, W, H); grain(c, rectPath(0, 0, W, H), [0, 0, W, H], 400, '#ffffff', .5, seed, 1.6); }
+function night(c, base = PAL.night, seed = 5) { resetT(c); c.fillStyle = base; c.fillRect(0, 0, c.canvas.width / S, c.canvas.height / S); grain(c, rectPath(0, 0, W, H), [0, 0, W, H], 400, '#ffffff', .5, seed, 1.6); }
 
 // ===================== LATTICES & PARTICLES =====================
 function hexPath(x, y, s) { const p = new Path2D(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i + Math.PI / 6; i ? p.lineTo(x + s * Math.cos(a), y + s * Math.sin(a)) : p.moveTo(x + s * Math.cos(a), y + s * Math.sin(a)); } p.closePath(); return p; }
@@ -516,46 +516,50 @@ function paletteSheet(c) { paper(c); c.font = '18px ui-monospace, Menlo, monospa
 //   palette   name or object; optional (defaults to the current PAL)
 //   timeline  [{ name, dur, fn(c, tau, i), twos }]   tau = seconds into the scene, i = the global frame on the 12 fps grid (for pulse, boil, flicker)
 //   score     (ac, t0, dest) => schedules notes; optional
-//   fps       12 (default: every frame on twos) or 24: the camera, particles and light run on ones and tau is continuous; a scene with
+//   fps       24 (default), or explicit 12 for an archival film: the camera, particles and light run on ones and tau is continuous; a scene with
 //             twos: true still gets tau snapped to the 12 fps grid, and inside a scene on ones a character's pose comes from twos(tau)
 //   format    { ar: '16:9', width: 1920 }; the query string ?ar=9:16&w=1080 overrides it at render time
 let FILM = null, ctx = null, cv = null;
-function defineFilm({ palette, timeline, score, format = {}, fps = 12 }) {
-  FPS_DRAW = fps === 24 ? 24 : 12;
+function defineFilm({ palette, timeline, score, format = {}, fps = 24 }) {
+  if (![12, 24].includes(fps)) throw new Error('Film fps must be 12 or 24');
+  if (!Array.isArray(timeline) || !timeline.length || timeline.some(s => !Number.isFinite(s.dur) || s.dur <= 0 || typeof s.fn !== 'function')) throw new Error('Timeline needs positive durations and scene functions');
+  FPS_DRAW = fps;
   const qs = new URLSearchParams(location.search);
   setFormat({ ar: qs.get('ar') || format.ar || '1:1', width: +qs.get('w') || format.width || undefined });
   if (palette) usePalette(palette);
   cv = document.getElementById('c'); if (!cv) { cv = document.createElement('canvas'); cv.id = 'c'; document.body.prepend(cv); } cv.width = OUT_W; cv.height = OUT_H; ctx = cv.getContext('2d');
-  const DUR = timeline.reduce((a, s) => a + s.dur, 0), NDRAW = Math.round(DUR * FPS_DRAW);
-  FILM = { timeline, score, DUR, NDRAW };
+  const DUR = timeline.reduce((a, s) => a + s.dur, 0), NDRAW = Math.max(1, Math.round(DUR * FPS_DRAW));
+  FILM = { timeline, score, DUR, NDRAW, palette: { ...PAL } };
   window.__drawFrame = i => { cur = -1; show(i); }; window.__NDRAW = NDRAW; window.__FILM = FILM;
   window.__size = { w: OUT_W, h: OUT_H, W, H, S }; window.__fps = FPS_DRAW;
   let pk = null, png = null; window.__frame = i => { const k = frameKey(i); if (k === pk) return png; cur = -1; show(i); pk = k; png = cv.toDataURL('image/png'); return png; };   // exact pixels, no screenshot; a frame identical to the last one (a scene on twos) is not redrawn
-  window.__grid = (n = 24, cellW = 240) => gridSheet(n, cellW).toDataURL('image/jpeg', .9);  // n evenly spaced frames
+  window.__grid = (n = 24, cellW = 240) => gridSheet(n, cellW).toDataURL('image/jpeg', .9);
+  window.__strip = (start, count = 12, cellW = 240) => gridSheet(count, cellW, start).toDataURL('image/jpeg', .94);  // n evenly spaced frames
   window.__wav = score ? async () => { const u = new Uint8Array(await renderWav()); let b = ''; for (let k = 0; k < u.length; k += 32768) b += String.fromCharCode.apply(null, u.subarray(k, k + 32768)); return btoa(b); } : null;   // the score as base64 WAV
   if (qs.has('bare')) { document.body.style.cssText = 'margin:0;padding:0;background:#000'; cv.style.cssText = `width:${OUT_W}px;height:${OUT_H}px;display:block`; document.querySelectorAll('.bar').forEach(b => b.hidden = true); }
   else buildPlayer();
   const go = () => { if (qs.has('grid')) { const img = new Image(); img.src = window.__grid(+qs.get('grid') || 24, 240); img.style.cssText = 'max-width:96vw'; cv.hidden = true; cv.after(img); }
     else show(qs.has('frame') ? +qs.get('frame') : 0); window.__ready = true; };
-  if (_photoLoads.length) Promise.all(_photoLoads).then(go); else go();   // photos decode before the first frame
+  Promise.all([..._photoLoads, document.fonts.ready]).then(go).catch(e => { window.__error = String(e); console.error(e); });   // photos decode before the first frame
 }
 // gridSheet: n evenly spaced drawn frames tiled 6 across, labelled with index and time. The first thing to look at.
-function gridSheet(n = 24, cellW = 240) {
+function gridSheet(n = 24, cellW = 240, startFrame = null) {
+  if (!Number.isInteger(n) || n < 1 || n > 240) throw new Error('Sheet count must be 1..240');
   const cols = 6, rows = Math.ceil(n / cols), cellH = Math.round(cellW * OUT_H / OUT_W), pad = 18, sheet = document.createElement('canvas');
   sheet.width = cols * cellW; sheet.height = rows * (cellH + pad); const g = sheet.getContext('2d'); g.fillStyle = '#141414'; g.fillRect(0, 0, sheet.width, sheet.height);
   g.font = '12px ui-monospace, Menlo, monospace'; g.fillStyle = '#e6e6e6';
-  for (let k = 0; k < n; k++) { const i = Math.round(k * (FILM.NDRAW - 1) / Math.max(1, n - 1)); cur = -1; show(i);
+  for (let k = 0; k < n; k++) { const i = startFrame === null ? Math.round(k * (FILM.NDRAW - 1) / Math.max(1, n - 1)) : clamp(startFrame + k, 0, FILM.NDRAW - 1); cur = -1; show(i);
     const x = (k % cols) * cellW, y = Math.floor(k / cols) * (cellH + pad); g.drawImage(cv, x, y, cellW, cellH); g.fillText(`${String(i).padStart(3, '0')}  ${(i / FPS_DRAW).toFixed(2)}s`, x + 4, y + cellH + 13); }
   cur = -1; return sheet;
 }
 // locate: which scene frame i falls in, its tau (snapped to the 12 fps grid for a scene on twos) and the 12 fps frame index handed to the scene
-function locate(i) { const { timeline } = FILM; const t = i / FPS_DRAW; let acc = 0;
+function locate(i) { if (!Number.isInteger(i) || i < 0 || i >= FILM.NDRAW) throw new RangeError('Frame outside film: ' + i); const { timeline } = FILM; const t = i / FPS_DRAW; let acc = 0;
   for (let k = 0; k < timeline.length; k++) { const s = timeline[k]; if (t < acc + s.dur - 1e-9 || k === timeline.length - 1) { const tau = (FPS_DRAW > 12 && s.twos) ? twos(t - acc) : t - acc; return { s, k, tau, i2: Math.floor((acc + tau) * 12 + 1e-6) }; } acc += s.dur; } }
 const frameKey = i => { const L = locate(i); return `${L.k}|${L.tau.toFixed(5)}|${L.i2}`; };
-function drawFrame(i) { const { s, tau, i2 } = locate(i); VIEW = null; resetT(ctx); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; s.fn(ctx, tau, i2); resetT(ctx); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; return s.name; }
+function drawFrame(i) { const { s, tau, i2 } = locate(i); VIEW = null; usePalette(FILM.palette); ctx.save(); try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); resetT(ctx); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.setLineDash([]); ctx.filter = 'none'; ctx.shadowBlur = 0; s.fn(ctx, tau, i2); } finally { ctx.restore(); } return s.name; }
 let cur = -1, playing = false, start = 0, sound = false, ac = null, ui = {};
 function show(i) { if (i === cur) return; cur = i; const name = drawFrame(i); if (ui.scrub) { ui.scrub.value = i; ui.info.textContent = `draw ${String(i).padStart(3, '0')}/${FILM.NDRAW}  t=${(i / FPS_DRAW).toFixed(2)}s  ${name}  ${W}x${H}@${OUT_W}px`; } }
-function loop() { if (!playing) return; const t = ((performance.now() - start) / 1000) % FILM.DUR; show(Math.floor(t * FPS_DRAW)); requestAnimationFrame(loop); }
+function loop() { if (!playing) return; const t = ((performance.now() - start) / 1000) % FILM.DUR; show(Math.min(FILM.NDRAW - 1, Math.floor(t * FPS_DRAW))); requestAnimationFrame(loop); }
 function buildPlayer() {
   const bar = document.createElement('div'); bar.className = 'bar'; bar.innerHTML = '<button id="play">play</button><button id="snd">sound: off</button><input id="scrub" type="range" min="0" max="0" value="0"><span id="info"></span><button id="exp">export PNG frames</button><button id="wav">export score.wav</button><span id="msg"></span>';
   cv.after(bar); ui = { scrub: bar.querySelector('#scrub'), info: bar.querySelector('#info'), msg: bar.querySelector('#msg') }; ui.scrub.max = FILM.NDRAW - 1;
