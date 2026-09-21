@@ -36,6 +36,22 @@ and a three-command installer.
 cd minimax-h3 && ./install/setup.sh check
 ```
 
+### [qwen-image-2.1](qwen-image-2.1)
+
+Image generation, editing and transparent PNGs on **one GPU**. The baseline is
+an RTX 3090 with 24 GB VRAM, using official INT8 ConvRot weights.
+
+Five native ComfyUI workflows, an isolated installer, SHA-256 model verification,
+and a script that submits a generation and checks the resulting PNG. Includes
+an [English guide](qwen-image-2.1/README.md), a
+[Russian guide](qwen-image-2.1/README.ru.md), and an
+[installation brief for an agent](qwen-image-2.1/INSTALL-WITH-AGENT.md).
+
+```bash
+cd qwen-image-2.1
+python3 install/setup.py check
+```
+
 ### [skills](skills)
 
 Agent skills that stand on their own.
