@@ -5,7 +5,7 @@
 В комплекте установщик, скачивание с проверкой SHA-256, 7 готовых ComfyUI
 workflows и скрипт генерации через API.
 
-[English](README.md) · [Задание агенту на английском](INSTALL-WITH-AGENT.md) · [Замеры и ограничения](docs/validation.md)
+[English low-VRAM guide](../qwen-image-2.1/LOW-VRAM.md) · [Задание агенту на английском](INSTALL-WITH-AGENT.md) · [Замеры и ограничения](docs/validation.md)
 
 Цель этой версии: уменьшить требования к VRAM и дать варианты настройки для
 разного железа. Файл Q4_K_M занимает 4,60 GB, но это **не полный расход памяти**.

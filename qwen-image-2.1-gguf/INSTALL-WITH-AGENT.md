@@ -1,8 +1,9 @@
 # Agent brief: install Qwen-Image-2.1 GGUF for the user's hardware
 
 Work with the `qwen-image-2.1-gguf` directory from
-https://github.com/alesha-pro/tools, or the complete directory supplied by the
-user. Read `README.md`, `docs/validation.md`, `install/models.json`, and
+https://github.com/alesha-pro/tools, or the files supplied by the
+user. Keep the repository layout, including `../qwen-image-2.1/LOW-VRAM.md`.
+Read that English guide, `docs/validation.md`, `install/models.json`, and
 `install/versions.json` before changing the machine.
 
 ## Objective
@@ -77,7 +78,7 @@ py -3.12 install/setup.py launch --comfy "$HOME/ComfyUI-Qwen21-GGUF" --gpu 0 --p
 
 Windows instructions are not evidence of a Windows validation run. Do not install
 unsigned drivers or change PowerShell policy. Use the actual Python executable
-for portable installations; see README.md.
+for portable installations; see `../qwen-image-2.1/LOW-VRAM.md`.
 
 If reusing a compatible ComfyUI, copy only the workflows with:
 

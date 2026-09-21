@@ -1,18 +1,20 @@
 <div align="center">
 
-For GGUF Q4_K_M and CPU-encoder workflows, see the [separate GGUF guide](../qwen-image-2.1-gguf/README.md).
-
 # Qwen-Image-2.1 on one GPU
 
 Local image generation, image editing and transparent PNGs in ComfyUI.
 Five workflows, a separate-environment installer, verified model downloads,
 and an installation brief you can hand to an agent.
 
-[Русский гайд](README.ru.md) · [Agent instructions / Инструкция агенту](INSTALL-WITH-AGENT.md) · [Workflows](workflows/README.md)
+[Low-VRAM guide](LOW-VRAM.md) · [Agent instructions](INSTALL-WITH-AGENT.md) · [Russian translation](README.ru.md) · [Workflows](workflows/README.md)
 
 </div>
 
 ## Start here
+
+**Have less VRAM? Start with the [low-VRAM guide](LOW-VRAM.md).** It covers
+GGUF Q4_K_M, CPU offloading, 7 workflows, and measured memory use.
+
 
 The baseline is **one NVIDIA GPU with 24 GB VRAM**, tested on an RTX 3090.
 It uses official INT8 ConvRot weights for both the image model and text encoder,
