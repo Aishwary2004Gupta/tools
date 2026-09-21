@@ -52,6 +52,14 @@ cd qwen-image-2.1
 python3 install/setup.py check
 ```
 
+### [qwen-image-2.1-gguf](qwen-image-2.1-gguf)
+
+Q4_K_M GGUF setup for Qwen-Image-2.1, with CPU text encoding and tiled VAE
+workflows for limited VRAM. Includes 7 ComfyUI workflows, a pinned installer,
+measured memory use, and [English instructions for an agent](qwen-image-2.1-gguf/INSTALL-WITH-AGENT.md).
+See the [English](qwen-image-2.1-gguf/README.md) or
+[Russian](qwen-image-2.1-gguf/README.ru.md) guide for hardware limits.
+
 ### [skills](skills)
 
 Agent skills that stand on their own.

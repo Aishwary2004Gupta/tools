@@ -1,5 +1,7 @@
 <div align="center">
 
+For GGUF Q4_K_M and CPU-encoder workflows, see the [separate GGUF guide](../qwen-image-2.1-gguf/README.md).
+
 # Qwen-Image-2.1 on one GPU
 
 Local image generation, image editing and transparent PNGs in ComfyUI.
