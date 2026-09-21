@@ -103,6 +103,7 @@ Inspect the actual encoded action before judging its drawing or timing.
 | [`examples/fly-style.html`](examples/fly-style.html) | a 9.5 s ink film: peach, ink blot, dividing egg, flight through a kitchen, compound-eye view |
 | [`examples/held-once.html`](examples/held-once.html) | a 22 s doodle film on five museum photos, with its photos in `held-once-photos.js` |
 | [`examples/night-shift.html`](examples/night-shift.html) | a 31 s chase at night on nine museum photos: moving light, runners on the real edge of a violin, a camera that follows and whips on the cuts |
+| [`examples/workshop.html`](examples/workshop.html) | a point-and-click screen that drives the film engine on the held-once photos: alpha-exact hit-testing on the cutouts, hover, event sound on `note()` and `noiseBurst()`, iris and blot transitions |
 | [`examples/gallop.html`](examples/gallop.html) | 34.5 s of found motion. Muybridge's 1878 question, the airborne frame, a disc that spins up until the horse runs |
 | [`examples/one-seed.html`](examples/one-seed.html) | 40 s of sand at full range: a camera over the table from one grain to a forest, wind, rain, snow, seasons in the lamp |
 | [`examples/one-year.html`](examples/one-year.html) | 39.5 s of sand in one take, a tree through its year |
